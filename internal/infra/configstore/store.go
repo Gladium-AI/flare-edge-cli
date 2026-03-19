@@ -67,4 +67,3 @@ func (s *Store) LoadWrangler(dir string, filename string) (config.WranglerConfig
 func (s *Store) SaveWrangler(dir string, filename string, wrangler config.WranglerConfig) error {
 	return s.fs.WriteJSON(filepath.Join(dir, filename), wrangler, 0o644)
 }
-

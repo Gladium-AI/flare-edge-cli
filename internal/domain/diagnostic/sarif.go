@@ -1,9 +1,9 @@
 package diagnostic
 
 type sarifReport struct {
-	Version string      `json:"version"`
-	Schema  string      `json:"$schema"`
-	Runs    []sarifRun  `json:"runs"`
+	Version string     `json:"version"`
+	Schema  string     `json:"$schema"`
+	Runs    []sarifRun `json:"runs"`
 }
 
 type sarifRun struct {
@@ -31,9 +31,9 @@ type sarifRule struct {
 }
 
 type sarifResult struct {
-	RuleID    string `json:"ruleId"`
-	Level     string `json:"level"`
-	Message   struct {
+	RuleID  string `json:"ruleId"`
+	Level   string `json:"level"`
+	Message struct {
 		Text string `json:"text"`
 	} `json:"message"`
 	Locations []sarifLocation `json:"locations,omitempty"`
@@ -55,4 +55,3 @@ type sarifArtifactLocation struct {
 type sarifRegion struct {
 	StartLine int `json:"startLine"`
 }
-

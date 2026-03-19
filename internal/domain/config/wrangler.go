@@ -1,16 +1,16 @@
 package config
 
 type WranglerConfig struct {
-	Name              string                        `json:"name"`
-	Main              string                        `json:"main"`
-	CompatibilityDate string                        `json:"compatibility_date"`
-	Observability     *WranglerObservability        `json:"observability,omitempty"`
-	Vars              map[string]string             `json:"vars,omitempty"`
-	KVNamespaces      []WranglerKVNamespace         `json:"kv_namespaces,omitempty"`
-	D1Databases       []WranglerD1Database          `json:"d1_databases,omitempty"`
-	R2Buckets         []WranglerR2Bucket            `json:"r2_buckets,omitempty"`
-	Routes            []WranglerRoute               `json:"routes,omitempty"`
-	Env               map[string]WranglerEnvConfig  `json:"env,omitempty"`
+	Name              string                       `json:"name"`
+	Main              string                       `json:"main"`
+	CompatibilityDate string                       `json:"compatibility_date"`
+	Observability     *WranglerObservability       `json:"observability,omitempty"`
+	Vars              map[string]string            `json:"vars,omitempty"`
+	KVNamespaces      []WranglerKVNamespace        `json:"kv_namespaces,omitempty"`
+	D1Databases       []WranglerD1Database         `json:"d1_databases,omitempty"`
+	R2Buckets         []WranglerR2Bucket           `json:"r2_buckets,omitempty"`
+	Routes            []WranglerRoute              `json:"routes,omitempty"`
+	Env               map[string]WranglerEnvConfig `json:"env,omitempty"`
 }
 
 type WranglerObservability struct {
@@ -18,12 +18,12 @@ type WranglerObservability struct {
 }
 
 type WranglerEnvConfig struct {
-	Name         string                 `json:"name,omitempty"`
-	Vars         map[string]string      `json:"vars,omitempty"`
-	KVNamespaces []WranglerKVNamespace  `json:"kv_namespaces,omitempty"`
-	D1Databases  []WranglerD1Database   `json:"d1_databases,omitempty"`
-	R2Buckets    []WranglerR2Bucket     `json:"r2_buckets,omitempty"`
-	Routes       []WranglerRoute        `json:"routes,omitempty"`
+	Name         string                `json:"name,omitempty"`
+	Vars         map[string]string     `json:"vars,omitempty"`
+	KVNamespaces []WranglerKVNamespace `json:"kv_namespaces,omitempty"`
+	D1Databases  []WranglerD1Database  `json:"d1_databases,omitempty"`
+	R2Buckets    []WranglerR2Bucket    `json:"r2_buckets,omitempty"`
+	Routes       []WranglerRoute       `json:"routes,omitempty"`
 }
 
 type WranglerKVNamespace struct {
@@ -50,4 +50,3 @@ type WranglerRoute struct {
 	ZoneID       string `json:"zone_id,omitempty"`
 	CustomDomain bool   `json:"custom_domain,omitempty"`
 }
-

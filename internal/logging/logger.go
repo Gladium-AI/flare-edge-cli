@@ -15,4 +15,3 @@ func New(stderr io.Writer) zerolog.Logger {
 	}
 	return logger.Level(level)
 }
-

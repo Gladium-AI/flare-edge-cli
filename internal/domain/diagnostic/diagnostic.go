@@ -21,4 +21,3 @@ type Item struct {
 func (i Item) IsError() bool {
 	return i.Severity == SeverityError
 }
-

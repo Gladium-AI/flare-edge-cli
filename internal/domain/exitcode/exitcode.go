@@ -12,4 +12,3 @@ const (
 	DeployError  = 8
 	RuntimeError = 9
 )
-

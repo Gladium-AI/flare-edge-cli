@@ -71,4 +71,3 @@ func (f *FileSystem) WriteJSON(path string, value any, perm os.FileMode) error {
 	data = append(data, '\n')
 	return f.WriteFile(path, data, perm)
 }
-
