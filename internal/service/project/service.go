@@ -42,17 +42,17 @@ type InfoOptions struct {
 }
 
 type InfoResult struct {
-	Name              string                    `json:"name"`
-	Entrypoint        string                    `json:"entrypoint"`
-	WorkerName        string                    `json:"worker_name"`
-	CompatibilityDate string                    `json:"compatibility_date"`
-	CompatibilityMode string                    `json:"compatibility_profile"`
-	OutputDir         string                    `json:"output_dir"`
-	WasmFile          string                    `json:"wasm_file"`
-	ShimFile          string                    `json:"shim_file"`
-	WranglerConfig    string                    `json:"wrangler_config"`
-	Bindings          config.ProjectBindings    `json:"bindings,omitempty"`
-	Generated         config.GeneratedArtifacts `json:"generated,omitempty"`
+	Name              string                     `json:"name"`
+	Entrypoint        string                     `json:"entrypoint"`
+	WorkerName        string                     `json:"worker_name"`
+	CompatibilityDate string                     `json:"compatibility_date"`
+	CompatibilityMode string                     `json:"compatibility_profile"`
+	OutputDir         string                     `json:"output_dir"`
+	WasmFile          string                     `json:"wasm_file"`
+	ShimFile          string                     `json:"shim_file"`
+	WranglerConfig    string                     `json:"wrangler_config"`
+	Bindings          *config.ProjectBindings    `json:"bindings,omitempty"`
+	Generated         *config.GeneratedArtifacts `json:"generated,omitempty"`
 }
 
 func NewService(store *configstore.Store, fs *fs.FileSystem) *Service {
@@ -133,10 +133,10 @@ func (s *Service) Info(_ context.Context, options InfoOptions) (InfoResult, erro
 		WranglerConfig:    project.WranglerConfig,
 	}
 	if options.ShowBindings {
-		result.Bindings = project.Bindings
+		result.Bindings = &project.Bindings
 	}
 	if options.ShowGenerated {
-		result.Generated = project.Generated
+		result.Generated = &project.Generated
 	}
 
 	return result, nil

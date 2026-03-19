@@ -65,11 +65,11 @@ async function boot() {
     ready = (async () => {
       const result = await WebAssembly.instantiate(wasmModule, go.importObject);
       go.run(result.instance);
-      for (let i = 0; i < 100; i += 1) {
+      for (let i = 0; i < 200; i += 1) {
         if (typeof globalThis.handleRequest === "function") {
           return;
         }
-        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 5));
       }
       throw new Error("Go handler did not register globalThis.handleRequest");
     })();

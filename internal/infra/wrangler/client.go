@@ -75,7 +75,7 @@ func (c *Client) WhoAmI(ctx context.Context, dir string, env []string) (WhoAmI, 
 	if emailMatch := regexp.MustCompile(`email ([^.\n]+@[^.\n]+\.[^\s.]+)`).FindStringSubmatch(raw); len(emailMatch) == 2 {
 		identity.Email = emailMatch[1]
 	}
-	if idMatch := regexp.MustCompile("`[^`]+`: `([0-9a-f]{32})`").FindStringSubmatch(raw); len(idMatch) == 2 {
+	if idMatch := regexp.MustCompile(`│\s*[^│\n]+\s*│\s*([0-9a-f]{32})\s*│`).FindStringSubmatch(raw); len(idMatch) == 2 {
 		identity.AccountID = idMatch[1]
 	}
 	return identity, nil
