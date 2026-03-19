@@ -10,8 +10,9 @@ import (
 )
 
 type Service struct {
-	store *configstore.Store
-	fs    *fs.FileSystem
+	store    *configstore.Store
+	fs       *fs.FileSystem
+	wrangler *shared.WranglerExecutor
 }
 
 type AttachOptions struct {
@@ -40,14 +41,16 @@ type DetachOptions struct {
 
 type Result struct {
 	Updated bool                   `json:"updated"`
+	Applied bool                   `json:"applied"`
 	Routes  []config.WranglerRoute `json:"routes"`
+	Deploy  shared.CommandResult   `json:"deploy"`
 }
 
-func NewService(store *configstore.Store, fs *fs.FileSystem) *Service {
-	return &Service{store: store, fs: fs}
+func NewService(store *configstore.Store, fs *fs.FileSystem, wrangler *shared.WranglerExecutor) *Service {
+	return &Service{store: store, fs: fs, wrangler: wrangler}
 }
 
-func (s *Service) Attach(_ context.Context, options AttachOptions) (Result, error) {
+func (s *Service) Attach(ctx context.Context, options AttachOptions) (Result, error) {
 	project, wranglerCfg, err := shared.LoadProjectAndWrangler(options.Dir, s.store, s.fs)
 	if err != nil {
 		return Result{}, err
@@ -65,10 +68,16 @@ func (s *Service) Attach(_ context.Context, options AttachOptions) (Result, erro
 	if err := shared.SaveWrangler(options.Dir, project, wranglerCfg, s.store); err != nil {
 		return Result{}, err
 	}
-	return Result{Updated: true, Routes: wranglerCfg.Routes}, nil
+	result, err := s.apply(ctx, options.Dir, options.Env)
+	if err != nil {
+		return Result{}, err
+	}
+	result.Updated = true
+	result.Routes = wranglerCfg.Routes
+	return result, nil
 }
 
-func (s *Service) Domain(_ context.Context, options DomainOptions) (Result, error) {
+func (s *Service) Domain(ctx context.Context, options DomainOptions) (Result, error) {
 	project, wranglerCfg, err := shared.LoadProjectAndWrangler(options.Dir, s.store, s.fs)
 	if err != nil {
 		return Result{}, err
@@ -86,10 +95,16 @@ func (s *Service) Domain(_ context.Context, options DomainOptions) (Result, erro
 	if err := shared.SaveWrangler(options.Dir, project, wranglerCfg, s.store); err != nil {
 		return Result{}, err
 	}
-	return Result{Updated: true, Routes: wranglerCfg.Routes}, nil
+	result, err := s.apply(ctx, options.Dir, options.Env)
+	if err != nil {
+		return Result{}, err
+	}
+	result.Updated = true
+	result.Routes = wranglerCfg.Routes
+	return result, nil
 }
 
-func (s *Service) Detach(_ context.Context, options DetachOptions) (Result, error) {
+func (s *Service) Detach(ctx context.Context, options DetachOptions) (Result, error) {
 	project, wranglerCfg, err := shared.LoadProjectAndWrangler(options.Dir, s.store, s.fs)
 	if err != nil {
 		return Result{}, err
@@ -103,7 +118,13 @@ func (s *Service) Detach(_ context.Context, options DetachOptions) (Result, erro
 	if err := shared.SaveWrangler(options.Dir, project, wranglerCfg, s.store); err != nil {
 		return Result{}, err
 	}
-	return Result{Updated: true, Routes: wranglerCfg.Routes}, nil
+	result, err := s.apply(ctx, options.Dir, options.Env)
+	if err != nil {
+		return Result{}, err
+	}
+	result.Updated = true
+	result.Routes = wranglerCfg.Routes
+	return result, nil
 }
 
 func assignZone(route *config.WranglerRoute, zone string) {
@@ -124,4 +145,15 @@ func contains(value, needle string) bool {
 		}
 	}
 	return false
+}
+
+func (s *Service) apply(ctx context.Context, dir, env string) (Result, error) {
+	raw, err := s.wrangler.Run(ctx, dir, env, "deploy")
+	if err != nil {
+		return Result{}, err
+	}
+	return Result{
+		Applied: true,
+		Deploy:  shared.NewCommandResult([]string{"deploy"}, raw),
+	}, nil
 }
