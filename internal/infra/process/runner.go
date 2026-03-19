@@ -61,7 +61,7 @@ func (r *ExecRunner) Run(ctx context.Context, cmd Command) (Result, error) {
 	}
 
 	if err != nil {
-		return result, fmt.Errorf("run %s: %w", cmd.Name, err)
+		return result, commandError("run", cmd.Name, err, result)
 	}
 
 	return result, nil
@@ -80,7 +80,18 @@ func (r *ExecRunner) Stream(ctx context.Context, cmd Command, stdout, stderr io.
 		execCmd.Stdin = strings.NewReader(cmd.Stdin)
 	}
 	if err := execCmd.Run(); err != nil {
-		return fmt.Errorf("stream %s: %w", cmd.Name, err)
+		return commandError("stream", cmd.Name, err, Result{})
 	}
 	return nil
+}
+
+func commandError(action, name string, err error, result Result) error {
+	details := strings.TrimSpace(result.Stderr)
+	if details == "" {
+		details = strings.TrimSpace(result.Stdout)
+	}
+	if details != "" {
+		return fmt.Errorf("%s %s: %w: %s", action, name, err, details)
+	}
+	return fmt.Errorf("%s %s: %w", action, name, err)
 }
