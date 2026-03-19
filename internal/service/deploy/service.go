@@ -232,5 +232,7 @@ func canFallbackToPlainDeploy(options Options, err error) bool {
 		return false
 	}
 	message := err.Error()
-	return strings.Contains(message, "This Worker does not exist on your account") || strings.Contains(message, "TTY initialization failed")
+	return strings.Contains(message, "This Worker does not exist on your account") ||
+		strings.Contains(message, "TTY initialization failed") ||
+		strings.Contains(message, "necessary to set a CLOUDFLARE_API_TOKEN")
 }
