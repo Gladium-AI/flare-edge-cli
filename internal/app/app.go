@@ -54,7 +54,7 @@ func Run() int {
 			Project: projectsvc.NewService(store, filesystem),
 			R2:      r2svc.NewService(store, filesystem, wranglerExec),
 			Release: releasesvc.NewService(wranglerExec),
-			Route:   routesvc.NewService(store, filesystem, wranglerExec),
+			Route:   routesvc.NewService(store, filesystem, buildService, wranglerExec),
 			Secret:  secretsvc.NewService(runner, filesystem, wranglerExec),
 		},
 	}

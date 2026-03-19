@@ -7,6 +7,7 @@ import (
 	"github.com/paolo/flare-edge-cli/internal/domain/config"
 	"github.com/paolo/flare-edge-cli/internal/infra/cloudflare"
 	"github.com/paolo/flare-edge-cli/internal/infra/configstore"
+	buildsvc "github.com/paolo/flare-edge-cli/internal/service/build"
 	"github.com/paolo/flare-edge-cli/internal/service/shared"
 	"github.com/paolo/flare-edge-cli/internal/support/fs"
 )
@@ -14,6 +15,7 @@ import (
 type Service struct {
 	store    *configstore.Store
 	fs       *fs.FileSystem
+	build    *buildsvc.Service
 	wrangler *shared.WranglerExecutor
 }
 
@@ -48,8 +50,8 @@ type Result struct {
 	Deploy  *shared.CommandResult  `json:"deploy,omitempty"`
 }
 
-func NewService(store *configstore.Store, fs *fs.FileSystem, wrangler *shared.WranglerExecutor) *Service {
-	return &Service{store: store, fs: fs, wrangler: wrangler}
+func NewService(store *configstore.Store, fs *fs.FileSystem, build *buildsvc.Service, wrangler *shared.WranglerExecutor) *Service {
+	return &Service{store: store, fs: fs, build: build, wrangler: wrangler}
 }
 
 func (s *Service) Attach(ctx context.Context, options AttachOptions) (Result, error) {
@@ -160,6 +162,9 @@ func contains(value, needle string) bool {
 }
 
 func (s *Service) apply(ctx context.Context, dir, env string) (Result, error) {
+	if _, err := s.build.Wasm(ctx, buildsvc.WasmOptions{Path: dir}); err != nil {
+		return Result{}, err
+	}
 	raw, err := s.wrangler.Run(ctx, dir, env, "deploy")
 	if err != nil {
 		return Result{}, err
