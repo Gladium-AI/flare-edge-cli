@@ -26,6 +26,7 @@ import (
 	routesvc "github.com/paolo/flare-edge-cli/internal/service/route"
 	secretsvc "github.com/paolo/flare-edge-cli/internal/service/secret"
 	"github.com/paolo/flare-edge-cli/internal/service/shared"
+	teardownsvc "github.com/paolo/flare-edge-cli/internal/service/teardown"
 	"github.com/paolo/flare-edge-cli/internal/support/fs"
 )
 
@@ -42,20 +43,21 @@ func Run() int {
 
 	deps := cli.Dependencies{
 		Services: cli.Services{
-			Auth:    authsvc.NewService(wranglerClient, authState),
-			Build:   buildService,
-			Compat:  compatsvc.NewService(),
-			D1:      d1svc.NewService(store, filesystem, wranglerExec),
-			Deploy:  deploysvc.NewService(store, filesystem, buildService, compatsvc.NewService(), wranglerExec),
-			Dev:     devsvc.NewService(runner, wranglerExec),
-			Doctor:  doctorsvc.NewService(store, filesystem, runner, goTool, wranglerClient, authState, buildService),
-			KV:      kvsvc.NewService(store, filesystem, wranglerExec),
-			Logs:    logssvc.NewService(runner, wranglerExec),
-			Project: projectsvc.NewService(store, filesystem),
-			R2:      r2svc.NewService(store, filesystem, wranglerExec),
-			Release: releasesvc.NewService(wranglerExec),
-			Route:   routesvc.NewService(store, filesystem, buildService, wranglerExec),
-			Secret:  secretsvc.NewService(runner, filesystem, wranglerExec),
+			Auth:     authsvc.NewService(wranglerClient, authState),
+			Build:    buildService,
+			Compat:   compatsvc.NewService(),
+			D1:       d1svc.NewService(store, filesystem, wranglerExec),
+			Deploy:   deploysvc.NewService(store, filesystem, buildService, compatsvc.NewService(), wranglerExec),
+			Dev:      devsvc.NewService(runner, wranglerExec),
+			Doctor:   doctorsvc.NewService(store, filesystem, runner, goTool, wranglerClient, authState, buildService),
+			KV:       kvsvc.NewService(store, filesystem, wranglerExec),
+			Logs:     logssvc.NewService(runner, wranglerExec),
+			Project:  projectsvc.NewService(store, filesystem),
+			R2:       r2svc.NewService(store, filesystem, wranglerExec),
+			Release:  releasesvc.NewService(wranglerExec),
+			Route:    routesvc.NewService(store, filesystem, buildService, wranglerExec),
+			Secret:   secretsvc.NewService(runner, filesystem, wranglerExec),
+			Teardown: teardownsvc.NewService(store, filesystem, wranglerExec),
 		},
 	}
 

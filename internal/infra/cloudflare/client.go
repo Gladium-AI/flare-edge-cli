@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type Client struct {
@@ -54,6 +55,38 @@ func (c *Client) FindZoneID(ctx context.Context, accountID, zone string) (string
 		return "", fmt.Errorf("zone %q not found", zone)
 	}
 	return payload.Result[0].ID, nil
+}
+
+func (c *Client) ListZones(ctx context.Context, accountID string) ([]Zone, error) {
+	values := url.Values{}
+	values.Set("per_page", "50")
+	if accountID != "" {
+		values.Set("account.id", accountID)
+	}
+	var payload response[[]Zone]
+	if err := c.do(ctx, http.MethodGet, "/zones?"+values.Encode(), nil, &payload); err != nil {
+		return nil, err
+	}
+	return payload.Result, nil
+}
+
+func (c *Client) FindZoneByHostname(ctx context.Context, accountID, hostname string) (Zone, error) {
+	zones, err := c.ListZones(ctx, accountID)
+	if err != nil {
+		return Zone{}, err
+	}
+	var match Zone
+	for _, zone := range zones {
+		if hostname == zone.Name || strings.HasSuffix(hostname, "."+zone.Name) {
+			if len(zone.Name) > len(match.Name) {
+				match = zone
+			}
+		}
+	}
+	if match.ID == "" {
+		return Zone{}, fmt.Errorf("no zone matched hostname %q", hostname)
+	}
+	return match, nil
 }
 
 func (c *Client) ListRoutes(ctx context.Context, zoneID string) ([]Route, error) {

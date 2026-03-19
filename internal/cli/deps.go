@@ -15,23 +15,25 @@ import (
 	releasesvc "github.com/paolo/flare-edge-cli/internal/service/release"
 	routesvc "github.com/paolo/flare-edge-cli/internal/service/route"
 	secretsvc "github.com/paolo/flare-edge-cli/internal/service/secret"
+	teardownsvc "github.com/paolo/flare-edge-cli/internal/service/teardown"
 )
 
 type Services struct {
-	Auth    *authsvc.Service
-	Build   *buildsvc.Service
-	Compat  *compatsvc.Service
-	D1      *d1svc.Service
-	Deploy  *deploysvc.Service
-	Dev     *devsvc.Service
-	Doctor  *doctorsvc.Service
-	KV      *kvsvc.Service
-	Logs    *logssvc.Service
-	Project *projectsvc.Service
-	R2      *r2svc.Service
-	Release *releasesvc.Service
-	Route   *routesvc.Service
-	Secret  *secretsvc.Service
+	Auth     *authsvc.Service
+	Build    *buildsvc.Service
+	Compat   *compatsvc.Service
+	D1       *d1svc.Service
+	Deploy   *deploysvc.Service
+	Dev      *devsvc.Service
+	Doctor   *doctorsvc.Service
+	KV       *kvsvc.Service
+	Logs     *logssvc.Service
+	Project  *projectsvc.Service
+	R2       *r2svc.Service
+	Release  *releasesvc.Service
+	Route    *routesvc.Service
+	Secret   *secretsvc.Service
+	Teardown *teardownsvc.Service
 }
 
 type Dependencies struct {

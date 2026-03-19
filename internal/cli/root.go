@@ -37,6 +37,7 @@ func NewRootCommand(deps Dependencies) *cobra.Command {
 	cmd.AddCommand(newReleaseCommand(deps))
 	cmd.AddCommand(newRouteCommand(deps))
 	cmd.AddCommand(newSecretCommand(deps))
+	cmd.AddCommand(newTeardownCommand(deps))
 	cmd.AddCommand(newInitAliasCommand(deps))
 	cmd.AddCommand(newInfoAliasCommand(deps))
 	cmd.AddCommand(newCheckAliasCommand(deps))
