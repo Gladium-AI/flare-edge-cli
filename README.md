@@ -471,6 +471,12 @@ go test -race ./...
 go run ./cmd/flare-edge-cli --help
 ```
 
+GitHub automation shipped with this repository:
+
+- `.github/workflows/ci.yml`: `gofmt`, `go vet`, race-tested unit tests, and cross-platform builds
+- `.github/workflows/security.yml`: dependency review on pull requests, `govulncheck`, and CodeQL analysis
+- `.github/dependabot.yml`: weekly Go module and GitHub Actions dependency updates
+
 ## Notes
 
 - Human-readable output is intended for operators; use `--json` when scripting

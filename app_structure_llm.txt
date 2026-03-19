@@ -17,4 +17,4 @@
 ## Notes
 - Local-first CLI project for Cloudflare Workers Go/Wasm workflows.
 - Uses Wrangler for deployment and resource operations.
-
+- GitHub automation includes CI quality gates, security scanning, and Dependabot updates under `.github/`.
