@@ -114,6 +114,7 @@ func (s *Service) Put(ctx context.Context, options KeyPutOptions) (shared.Comman
 	if options.Metadata != "" {
 		command = append(command, "--metadata", options.Metadata)
 	}
+	command = append(command, "--remote")
 	raw, err := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
 	if err != nil {
 		return shared.CommandResult{}, err
@@ -126,6 +127,7 @@ func (s *Service) Get(ctx context.Context, options KeyGetOptions) (shared.Comman
 	if options.Text {
 		command = append(command, "--text")
 	}
+	command = append(command, "--remote")
 	raw, err := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
 	if err != nil {
 		return shared.CommandResult{}, err
@@ -138,6 +140,7 @@ func (s *Service) List(ctx context.Context, options KeyListOptions) (shared.Comm
 	if options.Prefix != "" {
 		command = append(command, "--prefix", options.Prefix)
 	}
+	command = append(command, "--remote")
 	raw, err := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
 	if err != nil {
 		return shared.CommandResult{}, err
@@ -146,7 +149,7 @@ func (s *Service) List(ctx context.Context, options KeyListOptions) (shared.Comm
 }
 
 func (s *Service) Delete(ctx context.Context, options KeyDeleteOptions) (shared.CommandResult, error) {
-	command := []string{"kv", "key", "delete", options.Key, "--binding", options.Binding}
+	command := []string{"kv", "key", "delete", options.Key, "--binding", options.Binding, "--remote"}
 	raw, err := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
 	if err != nil {
 		return shared.CommandResult{}, err

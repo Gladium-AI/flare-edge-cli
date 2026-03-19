@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/paolo/flare-edge-cli/internal/domain/config"
@@ -101,37 +102,70 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 	}
 
 	command := []string{"deploy"}
-	if options.UploadOnly {
-		command = []string{"versions", "upload"}
-	}
+	baseArgs := make([]string, 0, 16)
 	if options.Name != "" {
-		command = append(command, "--name", options.Name)
+		baseArgs = append(baseArgs, "--name", options.Name)
 	}
 	if options.CompatDate != "" {
-		command = append(command, "--compatibility-date", options.CompatDate)
+		baseArgs = append(baseArgs, "--compatibility-date", options.CompatDate)
 	}
 	for _, item := range options.Var {
-		command = append(command, "--var", item)
+		baseArgs = append(baseArgs, "--var", item)
 	}
 	for _, route := range options.Route {
-		command = append(command, "--route", route)
+		baseArgs = append(baseArgs, "--route", route)
 	}
 	if options.KeepVars {
-		command = append(command, "--keep-vars")
+		baseArgs = append(baseArgs, "--keep-vars")
 	}
 	if options.Minify {
-		command = append(command, "--minify")
+		baseArgs = append(baseArgs, "--minify")
 	}
 	if options.Latest {
-		command = append(command, "--latest")
+		baseArgs = append(baseArgs, "--latest")
 	}
 	if options.DryRun {
-		command = append(command, "--dry-run")
-	}
-	if options.Message != "" {
-		command = append(command, "--message", options.Message)
+		baseArgs = append(baseArgs, "--dry-run")
 	}
 
+	if options.UploadOnly || options.Message != "" {
+		uploadArgs := append([]string{"versions", "upload"}, baseArgs...)
+		uploadArgs = append(uploadArgs, "--json")
+		if options.Message != "" {
+			uploadArgs = append(uploadArgs, "--message", options.Message)
+		}
+		uploadRaw, err := s.wrangler.Run(ctx, options.Dir, options.Env, uploadArgs...)
+		if err != nil {
+			return Result{}, err
+		}
+		if options.UploadOnly {
+			return Result{
+				Compatibility: compatibility,
+				Build:         buildResult,
+				Deploy:        shared.NewCommandResult(uploadArgs, uploadRaw),
+			}, nil
+		}
+
+		versionID, err := extractVersionID(uploadRaw.Stdout)
+		if err != nil {
+			return Result{}, err
+		}
+		command = []string{"versions", "deploy", "--version-id", versionID, "--percentage", "100"}
+		if options.Message != "" {
+			command = append(command, "--message", options.Message)
+		}
+		raw, err := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
+		if err != nil {
+			return Result{}, err
+		}
+		return Result{
+			Compatibility: compatibility,
+			Build:         buildResult,
+			Deploy:        shared.NewCommandResult(command, raw),
+		}, nil
+	}
+
+	command = append(command, baseArgs...)
 	raw, err := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
 	if err != nil {
 		return Result{}, err
@@ -142,6 +176,19 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 		Build:         buildResult,
 		Deploy:        shared.NewCommandResult(command, raw),
 	}, nil
+}
+
+func extractVersionID(payload string) (string, error) {
+	var decoded struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
+		return "", fmt.Errorf("decode uploaded version id: %w", err)
+	}
+	if decoded.ID == "" {
+		return "", fmt.Errorf("uploaded version id missing from wrangler output")
+	}
+	return decoded.ID, nil
 }
 
 func splitPair(value string) (string, string, bool) {

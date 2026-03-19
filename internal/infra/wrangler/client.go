@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/paolo/flare-edge-cli/internal/infra/process"
@@ -69,5 +70,13 @@ func (c *Client) WhoAmI(ctx context.Context, dir string, env []string) (WhoAmI, 
 		return WhoAmI{}, fmt.Errorf("wrangler whoami: %w", err)
 	}
 
-	return WhoAmI{Raw: strings.TrimSpace(result.Stdout)}, nil
+	raw := strings.TrimSpace(result.Stdout)
+	identity := WhoAmI{Raw: raw}
+	if emailMatch := regexp.MustCompile(`email ([^.\n]+@[^.\n]+\.[^\s.]+)`).FindStringSubmatch(raw); len(emailMatch) == 2 {
+		identity.Email = emailMatch[1]
+	}
+	if idMatch := regexp.MustCompile("`[^`]+`: `([0-9a-f]{32})`").FindStringSubmatch(raw); len(idMatch) == 2 {
+		identity.AccountID = idMatch[1]
+	}
+	return identity, nil
 }

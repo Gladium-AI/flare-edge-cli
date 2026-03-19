@@ -55,6 +55,7 @@ func main() {
 
 func workerShimTemplate(wasmFile string) string {
 	return fmt.Sprintf(`import "./wasm_exec.js";
+import wasmModule from "./%s";
 
 const go = new Go();
 let ready;
@@ -62,8 +63,7 @@ let ready;
 async function boot() {
   if (!ready) {
     ready = (async () => {
-      const response = await fetch(new URL("./%s", import.meta.url));
-      const result = await WebAssembly.instantiateStreaming(response, go.importObject);
+      const result = await WebAssembly.instantiate(wasmModule, go.importObject);
       go.run(result.instance);
       for (let i = 0; i < 100; i += 1) {
         if (typeof globalThis.handleRequest === "function") {

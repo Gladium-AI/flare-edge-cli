@@ -1,16 +1,27 @@
 package cli
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 )
 
 func NewRootCommand(deps Dependencies) *cobra.Command {
+	var accountID string
+
 	cmd := &cobra.Command{
 		Use:           "flare-edge-cli",
 		Short:         "Build and deploy Go/Wasm Workers with Cloudflare",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if accountID != "" {
+				return os.Setenv("CLOUDFLARE_ACCOUNT_ID", accountID)
+			}
+			return nil
+		},
 	}
+	cmd.PersistentFlags().StringVar(&accountID, "account-id", "", "Cloudflare account ID override for all commands")
 
 	cmd.AddCommand(newAuthCommand(deps))
 	cmd.AddCommand(newBuildCommand(deps))

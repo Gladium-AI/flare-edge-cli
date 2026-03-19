@@ -24,6 +24,16 @@ func NewPrinter(stdout, stderr io.Writer, json bool) *Printer {
 }
 
 func (p *Printer) Print(value any) error {
+	if text, ok := value.(string); ok {
+		_, err := fmt.Fprintln(p.stdout, text)
+		return err
+	}
+
+	if data, ok := stringifyJSON(value); ok {
+		_, err := fmt.Fprintln(p.stdout, data)
+		return err
+	}
+
 	if p.json {
 		payload, err := json.MarshalIndent(value, "", "  ")
 		if err != nil {
@@ -35,6 +45,14 @@ func (p *Printer) Print(value any) error {
 
 	_, err := fmt.Fprintln(p.stdout, value)
 	return err
+}
+
+func stringifyJSON(value any) (string, bool) {
+	payload, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return "", false
+	}
+	return string(payload), true
 }
 
 func (p *Printer) PrintDiagnostics(items []diagnostic.Item) error {

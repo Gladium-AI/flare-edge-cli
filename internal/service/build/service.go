@@ -105,20 +105,9 @@ func (s *Service) Wasm(ctx context.Context, options WasmOptions) (WasmResult, er
 			return WasmResult{}, err
 		}
 
-		shimSource := filepath.Join(options.Path, project.Generated.ShimSource)
-		exists, err := s.fs.Exists(shimSource)
-		if err != nil {
+		content := projectsvc.WorkerShimTemplate(outFile)
+		if err := s.fs.WriteFile(shimOut, []byte(content), 0o644); err != nil {
 			return WasmResult{}, err
-		}
-		if exists {
-			if err := s.fs.CopyFile(shimSource, shimOut, 0o644); err != nil {
-				return WasmResult{}, err
-			}
-		} else {
-			content := projectsvc.WorkerShimTemplate(outFile)
-			if err := s.fs.WriteFile(shimOut, []byte(content), 0o644); err != nil {
-				return WasmResult{}, err
-			}
 		}
 		files = append(files, filepath.Join(outDir, "wasm_exec.js"), shimOut)
 	}

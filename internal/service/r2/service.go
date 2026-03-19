@@ -86,7 +86,11 @@ func (s *Service) BucketCreate(ctx context.Context, options BucketCreateOptions)
 }
 
 func (s *Service) Put(ctx context.Context, options ObjectPutOptions) (shared.CommandResult, error) {
-	command := []string{"r2", "object", "put", options.Binding + "/" + options.Key, "--file", options.File}
+	bucket, err := s.resolveBucket(options.Dir, options.Binding)
+	if err != nil {
+		return shared.CommandResult{}, err
+	}
+	command := []string{"r2", "object", "put", bucket + "/" + options.Key, "--file", options.File, "--remote"}
 	if options.ContentType != "" {
 		command = append(command, "--content-type", options.ContentType)
 	}
@@ -104,7 +108,11 @@ func (s *Service) Put(ctx context.Context, options ObjectPutOptions) (shared.Com
 }
 
 func (s *Service) Get(ctx context.Context, options ObjectGetOptions) (shared.CommandResult, error) {
-	command := []string{"r2", "object", "get", options.Binding + "/" + options.Key}
+	bucket, err := s.resolveBucket(options.Dir, options.Binding)
+	if err != nil {
+		return shared.CommandResult{}, err
+	}
+	command := []string{"r2", "object", "get", bucket + "/" + options.Key, "--remote"}
 	if options.Out != "" {
 		command = append(command, "--file", options.Out)
 	}
@@ -116,10 +124,27 @@ func (s *Service) Get(ctx context.Context, options ObjectGetOptions) (shared.Com
 }
 
 func (s *Service) Delete(ctx context.Context, options ObjectDeleteOptions) (shared.CommandResult, error) {
-	command := []string{"r2", "object", "delete", options.Binding + "/" + options.Key}
+	bucket, err := s.resolveBucket(options.Dir, options.Binding)
+	if err != nil {
+		return shared.CommandResult{}, err
+	}
+	command := []string{"r2", "object", "delete", bucket + "/" + options.Key, "--remote"}
 	raw, err := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
 	if err != nil {
 		return shared.CommandResult{}, err
 	}
 	return shared.NewCommandResult(command, raw), nil
+}
+
+func (s *Service) resolveBucket(dir, binding string) (string, error) {
+	project, _, err := shared.LoadProjectAndWrangler(dir, s.store, s.fs)
+	if err != nil {
+		return "", err
+	}
+	for _, bucket := range project.Bindings.R2 {
+		if bucket.Binding == binding {
+			return bucket.BucketName, nil
+		}
+	}
+	return binding, nil
 }

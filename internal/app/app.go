@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/paolo/flare-edge-cli/internal/cli"
@@ -60,6 +61,7 @@ func Run() int {
 
 	root := cli.NewRootCommand(deps)
 	if err := root.Execute(); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		return exitcode.RuntimeError
 	}
 	return exitcode.Success
