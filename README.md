@@ -1,5 +1,8 @@
 # flare-edge-cli
 
+[![Go Version](https://img.shields.io/badge/Go-1.26.0-00ADD8?logo=go)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 `flare-edge-cli` scaffolds, validates, builds, deploys, tails, and tears down Go-for-Wasm Cloudflare Workers projects. It generates the Worker shim and Wrangler config, runs compatibility checks against a Workers/Wasm profile, and delegates Cloudflare operations to Wrangler and Cloudflare APIs where appropriate.
 
 This CLI is designed first for AI agents. Humans can use it directly, but the primary goal is to give coding agents a stable, scriptable control surface for creating and operating Cloudflare edge functions and lightweight microservices in Go.
