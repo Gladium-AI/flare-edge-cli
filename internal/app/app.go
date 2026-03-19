@@ -11,6 +11,8 @@ import (
 	"github.com/paolo/flare-edge-cli/internal/infra/wrangler"
 	"github.com/paolo/flare-edge-cli/internal/logging"
 	authsvc "github.com/paolo/flare-edge-cli/internal/service/auth"
+	buildsvc "github.com/paolo/flare-edge-cli/internal/service/build"
+	compatsvc "github.com/paolo/flare-edge-cli/internal/service/compat"
 	projectsvc "github.com/paolo/flare-edge-cli/internal/service/project"
 	"github.com/paolo/flare-edge-cli/internal/support/fs"
 )
@@ -27,6 +29,8 @@ func Run() int {
 	deps := cli.Dependencies{
 		Services: cli.Services{
 			Auth:    authsvc.NewService(wranglerClient, authState),
+			Build:   buildsvc.NewService(store, filesystem, runner, toolchain.NewGoToolchain(runner)),
+			Compat:  compatsvc.NewService(),
 			Project: projectsvc.NewService(store, filesystem),
 		},
 	}

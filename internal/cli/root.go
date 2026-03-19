@@ -13,6 +13,8 @@ func NewRootCommand(deps Dependencies) *cobra.Command {
 	}
 
 	cmd.AddCommand(newAuthCommand(deps))
+	cmd.AddCommand(newBuildCommand(deps))
+	cmd.AddCommand(newCompatCommand(deps))
 	cmd.AddCommand(newProjectCommand(deps))
 
 	return cmd

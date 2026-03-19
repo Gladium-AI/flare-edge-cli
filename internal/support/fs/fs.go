@@ -55,6 +55,13 @@ func (f *FileSystem) Remove(path string) error {
 	return nil
 }
 
+func (f *FileSystem) RemoveAll(path string) error {
+	if err := f.fs.RemoveAll(path); err != nil {
+		return fmt.Errorf("remove all %s: %w", path, err)
+	}
+	return nil
+}
+
 func (f *FileSystem) CopyFile(src, dst string, perm os.FileMode) error {
 	data, err := f.ReadFile(src)
 	if err != nil {

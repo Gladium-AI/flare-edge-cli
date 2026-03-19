@@ -107,3 +107,7 @@ export default {
 };
 `, wasmFile)
 }
+
+func WorkerShimTemplate(wasmFile string) string {
+	return workerShimTemplate(wasmFile)
+}
