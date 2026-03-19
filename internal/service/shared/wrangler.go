@@ -29,6 +29,7 @@ func (w *WranglerExecutor) EnvVars() []string {
 	}
 
 	env := make([]string, 0, 2)
+	env = append(env, "CI=1")
 	if state.APIToken != "" {
 		env = append(env, "CLOUDFLARE_API_TOKEN="+state.APIToken)
 	}
