@@ -2,6 +2,42 @@
 
 `flare-edge-cli` scaffolds, validates, builds, deploys, tails, and tears down Go-for-Wasm Cloudflare Workers projects. It generates the Worker shim and Wrangler config, runs compatibility checks against a Workers/Wasm profile, and delegates Cloudflare operations to Wrangler and Cloudflare APIs where appropriate.
 
+This CLI is designed first for AI agents. Humans can use it directly, but the primary goal is to give coding agents a stable, scriptable control surface for creating and operating Cloudflare edge functions and lightweight microservices in Go.
+
+## Why This Tool Exists
+
+`flare-edge-cli` exists to standardize the end-to-end agent workflow for Go on Cloudflare:
+
+- scaffold a deployable project with deterministic structure
+- validate whether the Go code fits Workers/Wasm constraints
+- build the `.wasm` artifact and Worker shim correctly every time
+- provision and manage Cloudflare resources through one consistent interface
+- emit machine-readable output that agents can inspect and chain into later actions
+- tear down remote and local side effects when an ephemeral environment is no longer needed
+
+The intended operator is usually an AI agent acting on behalf of a developer. Because of that, the interface is optimized around automation-friendly behavior:
+
+- stable command names and flag semantics
+- explicit config files
+- predictable project layout
+- JSON output for diagnostics and follow-up steps
+- clear separation between command, service, and infrastructure logic
+- safe cleanup for disposable environments created during agent workflows
+
+## Primary Use Case
+
+The primary use case is simple: an AI agent needs a standard way to create and deploy an edge function or small microservice on Cloudflare using Go without rebuilding the same scaffolding, compatibility analysis, build orchestration, deployment logic, and cleanup flow for every task.
+
+This means `flare-edge-cli` is not just a deploy wrapper. It is an agent-oriented execution surface for:
+
+- project generation
+- compatibility analysis
+- build orchestration
+- deployment orchestration
+- Cloudflare resource provisioning
+- release control
+- environment cleanup
+
 ## What It Does
 
 - Scaffolds Go Worker projects with a reproducible layout
@@ -10,6 +46,18 @@
 - Runs local or remote dev sessions through Wrangler
 - Deploys versioned Workers and manages routes, secrets, KV, D1, R2, and releases
 - Tears down Workers and optional side-effect resources cleanly
+
+## Design Principles
+
+The implementation is intentionally biased toward agent use:
+
+- machine-readable first, with human-readable output as a secondary mode
+- deterministic scaffolding and build output
+- explicit config mutation instead of hidden side effects
+- thin CLI handlers with testable service-layer logic
+- idempotent or safely repeatable operations where Cloudflare semantics allow it
+- clean separation between local project state and remote Cloudflare state
+- strong teardown support for disposable agent-created environments
 
 ## Requirements
 
