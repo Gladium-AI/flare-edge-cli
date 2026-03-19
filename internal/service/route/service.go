@@ -2,8 +2,10 @@ package route
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/paolo/flare-edge-cli/internal/domain/config"
+	"github.com/paolo/flare-edge-cli/internal/infra/cloudflare"
 	"github.com/paolo/flare-edge-cli/internal/infra/configstore"
 	"github.com/paolo/flare-edge-cli/internal/service/shared"
 	"github.com/paolo/flare-edge-cli/internal/support/fs"
@@ -43,7 +45,7 @@ type Result struct {
 	Updated bool                   `json:"updated"`
 	Applied bool                   `json:"applied"`
 	Routes  []config.WranglerRoute `json:"routes"`
-	Deploy  shared.CommandResult   `json:"deploy"`
+	Deploy  *shared.CommandResult  `json:"deploy,omitempty"`
 }
 
 func NewService(store *configstore.Store, fs *fs.FileSystem, wrangler *shared.WranglerExecutor) *Service {
@@ -109,6 +111,7 @@ func (s *Service) Detach(ctx context.Context, options DetachOptions) (Result, er
 	if err != nil {
 		return Result{}, err
 	}
+	existingRoutes := append([]config.WranglerRoute(nil), wranglerCfg.Routes...)
 	if options.Route != "" {
 		wranglerCfg.Routes = config.RemoveRoute(wranglerCfg.Routes, options.Route, false)
 	}
@@ -118,13 +121,22 @@ func (s *Service) Detach(ctx context.Context, options DetachOptions) (Result, er
 	if err := shared.SaveWrangler(options.Dir, project, wranglerCfg, s.store); err != nil {
 		return Result{}, err
 	}
-	result, err := s.apply(ctx, options.Dir, options.Env)
+
+	client, err := s.cloudflareClient()
 	if err != nil {
 		return Result{}, err
 	}
-	result.Updated = true
-	result.Routes = wranglerCfg.Routes
-	return result, nil
+	if options.Route != "" {
+		if err := s.deleteRouteTrigger(ctx, client, existingRoutes, options); err != nil {
+			return Result{}, err
+		}
+	}
+	if options.Hostname != "" {
+		if err := s.deleteCustomDomain(ctx, client, options); err != nil {
+			return Result{}, err
+		}
+	}
+	return Result{Updated: true, Applied: options.Route != "" || options.Hostname != "", Routes: wranglerCfg.Routes}, nil
 }
 
 func assignZone(route *config.WranglerRoute, zone string) {
@@ -154,6 +166,81 @@ func (s *Service) apply(ctx context.Context, dir, env string) (Result, error) {
 	}
 	return Result{
 		Applied: true,
-		Deploy:  shared.NewCommandResult([]string{"deploy"}, raw),
+		Deploy:  commandResultPtr(shared.NewCommandResult([]string{"deploy"}, raw)),
 	}, nil
+}
+
+func (s *Service) cloudflareClient() (*cloudflare.Client, error) {
+	token, err := s.wrangler.APIToken()
+	if err != nil {
+		return nil, err
+	}
+	return cloudflare.NewClient(token), nil
+}
+
+func (s *Service) deleteRouteTrigger(ctx context.Context, client *cloudflare.Client, existing []config.WranglerRoute, options DetachOptions) error {
+	zoneRef := firstZoneReference(options.Zone, existing, options.Route, false)
+	if zoneRef == "" {
+		return fmt.Errorf("zone is required to detach route %q", options.Route)
+	}
+	zoneID, err := resolveZoneID(ctx, client, s.wrangler.AccountID(), zoneRef)
+	if err != nil {
+		return err
+	}
+	routes, err := client.ListRoutes(ctx, zoneID)
+	if err != nil {
+		return err
+	}
+	for _, route := range routes {
+		if route.Pattern == options.Route {
+			return client.DeleteRoute(ctx, zoneID, route.ID)
+		}
+	}
+	return nil
+}
+
+func (s *Service) deleteCustomDomain(ctx context.Context, client *cloudflare.Client, options DetachOptions) error {
+	accountID := s.wrangler.AccountID()
+	if accountID == "" {
+		return fmt.Errorf("account id is required to detach custom domain %q", options.Hostname)
+	}
+	records, err := client.ListDomainRecords(ctx, accountID, options.Hostname)
+	if err != nil {
+		return err
+	}
+	for _, record := range records {
+		if record.Hostname == options.Hostname {
+			return client.DeleteDomainRecord(ctx, accountID, record.ID)
+		}
+	}
+	return nil
+}
+
+func resolveZoneID(ctx context.Context, client *cloudflare.Client, accountID, zoneRef string) (string, error) {
+	if len(zoneRef) == 32 && !contains(zoneRef, ".") {
+		return zoneRef, nil
+	}
+	return client.FindZoneID(ctx, accountID, zoneRef)
+}
+
+func firstZoneReference(explicit string, routes []config.WranglerRoute, pattern string, customDomain bool) string {
+	if explicit != "" {
+		return explicit
+	}
+	for _, route := range routes {
+		if route.Pattern != pattern || route.CustomDomain != customDomain {
+			continue
+		}
+		if route.ZoneID != "" {
+			return route.ZoneID
+		}
+		if route.ZoneName != "" {
+			return route.ZoneName
+		}
+	}
+	return ""
+}
+
+func commandResultPtr(value shared.CommandResult) *shared.CommandResult {
+	return &value
 }
