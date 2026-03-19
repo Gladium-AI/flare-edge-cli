@@ -25,7 +25,7 @@ func newLogsTailCommand(deps Dependencies) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&options.Dir, "path", ".", "Project path")
 	cmd.Flags().StringVar(&options.Env, "env", "", "Wrangler environment")
-	cmd.Flags().StringVar(&options.Worker, "worker", "", "Worker name, workers.dev URL, or route")
+	cmd.Flags().StringVar(&options.Worker, "worker", "", "Worker name or route")
 	cmd.Flags().StringVar(&options.Format, "format", "", "Output format: pretty|json")
 	cmd.Flags().StringVar(&options.Search, "search", "", "Text filter")
 	cmd.Flags().StringArrayVar(&options.Status, "status", nil, "Invocation status filter")

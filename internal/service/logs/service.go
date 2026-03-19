@@ -3,9 +3,7 @@ package logs
 import (
 	"context"
 	"io"
-	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/paolo/flare-edge-cli/internal/infra/process"
 	"github.com/paolo/flare-edge-cli/internal/service/shared"
@@ -32,8 +30,8 @@ func NewService(runner process.Runner, wrangler *shared.WranglerExecutor) *Servi
 
 func (s *Service) Tail(ctx context.Context, options Options, stdout, stderr io.Writer) error {
 	args := []string{"tail"}
-	if target := normalizeWorkerTarget(options.Worker); target != "" {
-		args = append(args, target)
+	if options.Worker != "" {
+		args = append(args, options.Worker)
 	}
 	if options.Format != "" {
 		args = append(args, "--format", options.Format)
@@ -54,26 +52,4 @@ func (s *Service) Tail(ctx context.Context, options Options, stdout, stderr io.W
 		Dir:  options.Dir,
 		Env:  s.wrangler.EnvVars(),
 	}, stdout, stderr)
-}
-
-func normalizeWorkerTarget(value string) string {
-	if value == "" {
-		return ""
-	}
-	parsed, err := url.Parse(value)
-	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return value
-	}
-	host := parsed.Hostname()
-	if strings.HasSuffix(host, ".workers.dev") {
-		labels := strings.Split(host, ".")
-		if len(labels) > 0 && labels[0] != "" {
-			return labels[0]
-		}
-	}
-	path := strings.TrimSuffix(parsed.EscapedPath(), "/")
-	if path == "" {
-		return host
-	}
-	return host + path
 }
