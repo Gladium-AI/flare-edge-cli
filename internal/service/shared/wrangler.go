@@ -78,7 +78,10 @@ func AppendGlobalArgs(args []string, envName string) []string {
 }
 
 func envWithDefaults(env []string) []string {
-	return append([]string{"CI=1"}, env...)
+	if hasEnvPrefix(env, "CLOUDFLARE_API_TOKEN=") || os.Getenv("CLOUDFLARE_API_TOKEN") != "" {
+		return append([]string{"CI=1"}, env...)
+	}
+	return env
 }
 
 func loadWranglerOAuthToken() (string, error) {
@@ -104,4 +107,13 @@ func wranglerConfigCandidates() []string {
 		filepath.Join(home, "Library", "Preferences", ".wrangler", "config", "default.toml"),
 		filepath.Join(home, ".wrangler", "config", "default.toml"),
 	}
+}
+
+func hasEnvPrefix(env []string, prefix string) bool {
+	for _, item := range env {
+		if len(item) >= len(prefix) && item[:len(prefix)] == prefix {
+			return true
+		}
+	}
+	return false
 }
