@@ -14,11 +14,11 @@ type WranglerExecutor struct {
 }
 
 func (w *WranglerExecutor) Run(ctx context.Context, dir string, envName string, args ...string) (process.Result, error) {
-	args = appendGlobalArgs(args, envName)
-	return w.Client.RunWithEnv(ctx, dir, w.envVars(), args...)
+	args = AppendGlobalArgs(args, envName)
+	return w.Client.RunWithEnv(ctx, dir, w.EnvVars(), args...)
 }
 
-func (w *WranglerExecutor) envVars() []string {
+func (w *WranglerExecutor) EnvVars() []string {
 	if w.State == nil {
 		return nil
 	}
@@ -38,7 +38,7 @@ func (w *WranglerExecutor) envVars() []string {
 	return env
 }
 
-func appendGlobalArgs(args []string, envName string) []string {
+func AppendGlobalArgs(args []string, envName string) []string {
 	if envName == "" {
 		return args
 	}
