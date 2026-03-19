@@ -136,17 +136,8 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 		}
 		uploadRaw, err := s.wrangler.Run(ctx, options.Dir, options.Env, uploadArgs...)
 		if err != nil {
-			if options.Message != "" && (strings.Contains(err.Error(), "This Worker does not exist on your account") || strings.Contains(err.Error(), "TTY initialization failed")) {
-				command = append([]string{"deploy"}, baseArgs...)
-				raw, deployErr := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
-				if deployErr != nil {
-					return Result{}, deployErr
-				}
-				return Result{
-					Compatibility: compatibility,
-					Build:         buildResult,
-					Deploy:        shared.NewCommandResult(command, raw),
-				}, nil
+			if canFallbackToPlainDeploy(options, err) {
+				return s.plainDeploy(ctx, options, compatibility, buildResult, baseArgs)
 			}
 			return Result{}, err
 		}
@@ -160,6 +151,9 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 
 		versionID, err := s.latestVersionID(ctx, options.Dir, options.Env)
 		if err != nil {
+			if canFallbackToPlainDeploy(options, err) {
+				return s.plainDeploy(ctx, options, compatibility, buildResult, baseArgs)
+			}
 			return Result{}, err
 		}
 		command = []string{"versions", "deploy", "--version-id", versionID, "--percentage", "100"}
@@ -168,6 +162,9 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 		}
 		raw, err := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
 		if err != nil {
+			if canFallbackToPlainDeploy(options, err) {
+				return s.plainDeploy(ctx, options, compatibility, buildResult, baseArgs)
+			}
 			return Result{}, err
 		}
 		return Result{
@@ -183,6 +180,19 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 		return Result{}, err
 	}
 
+	return Result{
+		Compatibility: compatibility,
+		Build:         buildResult,
+		Deploy:        shared.NewCommandResult(command, raw),
+	}, nil
+}
+
+func (s *Service) plainDeploy(ctx context.Context, options Options, compatibility compatsvc.CheckResult, buildResult buildsvc.WasmResult, baseArgs []string) (Result, error) {
+	command := append([]string{"deploy"}, baseArgs...)
+	raw, err := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
+	if err != nil {
+		return Result{}, err
+	}
 	return Result{
 		Compatibility: compatibility,
 		Build:         buildResult,
@@ -215,4 +225,12 @@ func splitPair(value string) (string, string, bool) {
 		}
 	}
 	return "", "", false
+}
+
+func canFallbackToPlainDeploy(options Options, err error) bool {
+	if options.UploadOnly || options.Message == "" {
+		return false
+	}
+	message := err.Error()
+	return strings.Contains(message, "This Worker does not exist on your account") || strings.Contains(message, "TTY initialization failed")
 }
