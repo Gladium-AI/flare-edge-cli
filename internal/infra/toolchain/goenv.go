@@ -54,4 +54,3 @@ func (g *GoToolchain) WasmExecPath(ctx context.Context, dir string) (string, err
 
 	return filepath.Join(env.GOROOT, "lib", "wasm", "wasm_exec.js"), nil
 }
-
