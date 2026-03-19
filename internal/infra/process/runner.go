@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -33,7 +34,9 @@ func NewExecRunner() *ExecRunner {
 func (r *ExecRunner) Run(ctx context.Context, cmd Command) (Result, error) {
 	execCmd := exec.CommandContext(ctx, cmd.Name, cmd.Args...)
 	execCmd.Dir = cmd.Dir
-	execCmd.Env = cmd.Env
+	if len(cmd.Env) > 0 {
+		execCmd.Env = append(os.Environ(), cmd.Env...)
+	}
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
@@ -56,4 +59,3 @@ func (r *ExecRunner) Run(ctx context.Context, cmd Command) (Result, error) {
 
 	return result, nil
 }
-
