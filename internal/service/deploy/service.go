@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/paolo/flare-edge-cli/internal/domain/config"
 	"github.com/paolo/flare-edge-cli/internal/infra/configstore"
@@ -130,12 +131,23 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 
 	if options.UploadOnly || options.Message != "" {
 		uploadArgs := append([]string{"versions", "upload"}, baseArgs...)
-		uploadArgs = append(uploadArgs, "--json")
 		if options.Message != "" {
 			uploadArgs = append(uploadArgs, "--message", options.Message)
 		}
 		uploadRaw, err := s.wrangler.Run(ctx, options.Dir, options.Env, uploadArgs...)
 		if err != nil {
+			if options.Message != "" && strings.Contains(err.Error(), "This Worker does not exist on your account") {
+				command = append([]string{"deploy"}, baseArgs...)
+				raw, deployErr := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
+				if deployErr != nil {
+					return Result{}, deployErr
+				}
+				return Result{
+					Compatibility: compatibility,
+					Build:         buildResult,
+					Deploy:        shared.NewCommandResult(command, raw),
+				}, nil
+			}
 			return Result{}, err
 		}
 		if options.UploadOnly {
@@ -146,7 +158,7 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 			}, nil
 		}
 
-		versionID, err := extractVersionID(uploadRaw.Stdout)
+		versionID, err := s.latestVersionID(ctx, options.Dir, options.Env)
 		if err != nil {
 			return Result{}, err
 		}
@@ -178,17 +190,22 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 	}, nil
 }
 
-func extractVersionID(payload string) (string, error) {
-	var decoded struct {
+func (s *Service) latestVersionID(ctx context.Context, dir, env string) (string, error) {
+	raw, err := s.wrangler.Run(ctx, dir, env, "versions", "list", "--json")
+	if err != nil {
+		return "", err
+	}
+
+	var versions []struct {
 		ID string `json:"id"`
 	}
-	if err := json.Unmarshal([]byte(payload), &decoded); err != nil {
-		return "", fmt.Errorf("decode uploaded version id: %w", err)
+	if err := json.Unmarshal([]byte(raw.Stdout), &versions); err != nil {
+		return "", fmt.Errorf("decode versions list: %w", err)
 	}
-	if decoded.ID == "" {
-		return "", fmt.Errorf("uploaded version id missing from wrangler output")
+	if len(versions) == 0 {
+		return "", fmt.Errorf("no worker versions available after upload")
 	}
-	return decoded.ID, nil
+	return versions[len(versions)-1].ID, nil
 }
 
 func splitPair(value string) (string, string, bool) {
