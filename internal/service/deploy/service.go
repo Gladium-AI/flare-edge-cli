@@ -136,7 +136,7 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 		}
 		uploadRaw, err := s.wrangler.Run(ctx, options.Dir, options.Env, uploadArgs...)
 		if err != nil {
-			if options.Message != "" && strings.Contains(err.Error(), "This Worker does not exist on your account") {
+			if options.Message != "" && (strings.Contains(err.Error(), "This Worker does not exist on your account") || strings.Contains(err.Error(), "TTY initialization failed")) {
 				command = append([]string{"deploy"}, baseArgs...)
 				raw, deployErr := s.wrangler.Run(ctx, options.Dir, options.Env, command...)
 				if deployErr != nil {
