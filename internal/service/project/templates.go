@@ -60,18 +60,36 @@ import wasmModule from "./%s";
 const go = new Go();
 let ready;
 
+function wasmInstance(result) {
+  if (result instanceof WebAssembly.Instance) {
+    return result;
+  }
+  if (result && result.instance instanceof WebAssembly.Instance) {
+    return result.instance;
+  }
+  throw new TypeError("unsupported WebAssembly instantiate result");
+}
+
 async function boot() {
   if (!ready) {
     ready = (async () => {
       const result = await WebAssembly.instantiate(wasmModule, go.importObject);
-      go.run(result.instance);
-      for (let i = 0; i < 200; i += 1) {
-        if (typeof globalThis.handleRequest === "function") {
-          return;
+      const runtime = go.run(wasmInstance(result));
+      const waitForHandler = (async () => {
+        for (let i = 0; i < 200; i += 1) {
+          if (typeof globalThis.handleRequest === "function") {
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 5));
         }
-        await new Promise((resolve) => setTimeout(resolve, 5));
-      }
-      throw new Error("Go handler did not register globalThis.handleRequest");
+        throw new Error("Go handler did not register globalThis.handleRequest");
+      })();
+      await Promise.race([
+        waitForHandler,
+        runtime.then(() => {
+          throw new Error("Go runtime exited before handler registration");
+        }),
+      ]);
     })();
   }
   await ready;
