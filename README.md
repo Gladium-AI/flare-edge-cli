@@ -74,10 +74,18 @@ The implementation is intentionally biased toward agent use:
 Build the binary from the repository root:
 
 ```bash
-go build
+make build
 ```
 
-That produces a local `./flare-edge-cli` binary.
+That produces a local `./bin/flare-edge-cli` binary.
+
+Install it into a user-local bin directory:
+
+```bash
+make install
+```
+
+The install target prefers `XDG_BIN_HOME` when set, then an existing `~/.local/bin`, then `~/bin`, and otherwise creates `~/.local/bin`. You can override the destination explicitly with `make install INSTALL_DIR=/path/to/bin`.
 
 You can also run it directly during development:
 
@@ -465,6 +473,9 @@ Attach a route or custom domain:
 Useful local commands:
 
 ```bash
+make build
+make test
+make install
 go test ./...
 go vet ./...
 go test -race ./...
