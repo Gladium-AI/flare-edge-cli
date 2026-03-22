@@ -11,6 +11,7 @@ import (
 	"github.com/paolo/flare-edge-cli/internal/infra/toolchain"
 	"github.com/paolo/flare-edge-cli/internal/infra/wrangler"
 	"github.com/paolo/flare-edge-cli/internal/logging"
+	aisvc "github.com/paolo/flare-edge-cli/internal/service/ai"
 	authsvc "github.com/paolo/flare-edge-cli/internal/service/auth"
 	buildsvc "github.com/paolo/flare-edge-cli/internal/service/build"
 	compatsvc "github.com/paolo/flare-edge-cli/internal/service/compat"
@@ -43,6 +44,7 @@ func Run() int {
 
 	deps := cli.Dependencies{
 		Services: cli.Services{
+			AI:       aisvc.NewService(store, filesystem),
 			Auth:     authsvc.NewService(wranglerClient, authState),
 			Build:    buildService,
 			Compat:   compatsvc.NewService(),

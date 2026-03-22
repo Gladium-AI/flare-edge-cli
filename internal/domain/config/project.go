@@ -32,6 +32,7 @@ type Project struct {
 type ProjectBindings struct {
 	Vars    map[string]string `json:"vars,omitempty"`
 	Secrets []string          `json:"secrets,omitempty"`
+	AI      *AIBinding        `json:"ai,omitempty"`
 	KV      []KVBinding       `json:"kv,omitempty"`
 	D1      []D1Binding       `json:"d1,omitempty"`
 	R2      []R2Binding       `json:"r2,omitempty"`
@@ -45,6 +46,11 @@ type GeneratedArtifacts struct {
 type Environment struct {
 	Name     string          `json:"name"`
 	Bindings ProjectBindings `json:"bindings"`
+}
+
+type AIBinding struct {
+	Binding string `json:"binding"`
+	Remote  bool   `json:"remote,omitempty"`
 }
 
 type KVBinding struct {
@@ -74,7 +80,7 @@ func DefaultProject(name, modulePath, packageName, template, compatDate, env str
 	}
 
 	entry := "./cmd/worker"
-	return Project{
+	project := Project{
 		SchemaVersion:        1,
 		ProjectName:          name,
 		ModulePath:           modulePath,
@@ -96,8 +102,21 @@ func DefaultProject(name, modulePath, packageName, template, compatDate, env str
 			WasmExecSource: "internal/generated/wasm_exec.js",
 		},
 	}
+	if UsesAIBinding(template) {
+		project.Bindings.AI = &AIBinding{Binding: "AI", Remote: true}
+	}
+	return project
 }
 
 func (p Project) ArtifactPath() string {
 	return fmt.Sprintf("%s/%s", p.OutDir, p.WasmFile)
+}
+
+func UsesAIBinding(template string) bool {
+	switch template {
+	case "ai-text", "ai-chat", "ai-vision", "ai-stt", "ai-tts", "ai-image", "ai-embeddings":
+		return true
+	default:
+		return false
+	}
 }

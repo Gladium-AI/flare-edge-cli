@@ -247,9 +247,11 @@ func resetLocalState(project config.Project, wranglerCfg config.WranglerConfig, 
 	if keepBindings {
 		return project, wranglerCfg
 	}
+	project.Bindings.AI = nil
 	project.Bindings.KV = nil
 	project.Bindings.D1 = nil
 	project.Bindings.R2 = nil
+	wranglerCfg.AI = nil
 	wranglerCfg.KVNamespaces = nil
 	wranglerCfg.D1Databases = nil
 	wranglerCfg.R2Buckets = nil

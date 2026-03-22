@@ -23,6 +23,7 @@ func NewRootCommand(deps Dependencies) *cobra.Command {
 	}
 	cmd.PersistentFlags().StringVar(&accountID, "account-id", "", "Cloudflare account ID override for all commands")
 
+	cmd.AddCommand(newAICommand(deps))
 	cmd.AddCommand(newAuthCommand(deps))
 	cmd.AddCommand(newBuildCommand(deps))
 	cmd.AddCommand(newCompatCommand(deps))
