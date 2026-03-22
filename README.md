@@ -47,6 +47,7 @@ This means `flare-edge-cli` is not just a deploy wrapper. It is an agent-oriente
 - Validates Go code against a Workers/Wasm compatibility profile
 - Builds `.wasm` artifacts and the JavaScript Worker shim
 - Runs local or remote dev sessions through Wrangler
+- Configures Workers AI bindings for Go-based AI Workers
 - Deploys versioned Workers and manages routes, secrets, KV, D1, R2, and releases
 - Tears down Workers and optional side-effect resources cleanly
 
@@ -235,9 +236,41 @@ Supported templates:
 - `edge-http`
 - `edge-json`
 - `scheduled`
+- `ai-text`
+- `ai-chat`
+- `ai-vision`
+- `ai-stt`
+- `ai-tts`
+- `ai-image`
+- `ai-embeddings`
 - `kv-api`
 - `d1-api`
 - `r2-api`
+
+AI templates:
+
+- `ai-text`: backward-compatible simple text inference scaffold, now using `@cf/moonshotai/kimi-k2.5`
+- `ai-chat`: chat-style text generation scaffold using `@cf/moonshotai/kimi-k2.5`
+- `ai-vision`: vision scaffold using `@cf/moonshotai/kimi-k2.5`
+- `ai-stt`: speech-to-text scaffold using `@cf/deepgram/nova-3`
+- `ai-tts`: text-to-speech scaffold using `@cf/deepgram/aura-2-en`
+- `ai-image`: text-to-image scaffold using `@cf/black-forest-labs/flux-2-klein-9b`
+- `ai-embeddings`: embeddings scaffold using `@cf/qwen/qwen3-embedding-0.6b`
+
+### `ai`
+
+Manage the Workers AI binding stored in local project config.
+
+```bash
+./flare-edge-cli ai binding set [--path <dir>] [--binding <name>] [--remote] [--json]
+./flare-edge-cli ai binding clear [--path <dir>] [--json]
+```
+
+Notes:
+
+- `ai binding set` updates both `flare-edge.json` and `wrangler.jsonc`
+- the default binding name is `AI`
+- `--remote` should remain enabled for Workers AI development
 
 ### `compat`
 
@@ -425,6 +458,30 @@ Scaffold a JSON worker:
 
 ```bash
 ./flare-edge-cli init test-project --module-path github.com/example/test-project --template edge-json
+```
+
+Scaffold a Go-based AI Worker:
+
+```bash
+./flare-edge-cli init ai-worker --module-path github.com/example/ai-worker --template ai-text
+```
+
+Scaffold a vision Worker:
+
+```bash
+./flare-edge-cli init ai-vision-worker --module-path github.com/example/ai-vision-worker --template ai-vision
+```
+
+Scaffold a speech-to-text Worker:
+
+```bash
+./flare-edge-cli init ai-stt-worker --module-path github.com/example/ai-stt-worker --template ai-stt
+```
+
+Add Workers AI to an existing project:
+
+```bash
+./flare-edge-cli ai binding set --path ./ai-worker --binding AI --remote
 ```
 
 Check compatibility and emit JSON:

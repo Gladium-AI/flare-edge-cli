@@ -23,20 +23,35 @@ func readmeTemplate(project config.Project) string {
 }
 
 func workerMainTemplate(project config.Project) string {
-	message := "hello from flare-edge-cli"
 	switch project.Template {
+	case "ai-text", "ai-chat":
+		return aiChatWorkerMainTemplate()
+	case "ai-vision":
+		return aiVisionWorkerMainTemplate()
+	case "ai-stt":
+		return aiSTTWorkerMainTemplate()
+	case "ai-tts":
+		return aiTTSWorkerMainTemplate()
+	case "ai-image":
+		return aiImageWorkerMainTemplate()
+	case "ai-embeddings":
+		return aiEmbeddingsWorkerMainTemplate()
 	case "edge-json":
-		message = "{\"ok\":true}"
+		return basicWorkerMainTemplate("{\"ok\":true}")
 	case "scheduled":
-		message = "scheduled handler ready"
+		return basicWorkerMainTemplate("scheduled handler ready")
 	case "kv-api":
-		message = "kv binding ready"
+		return basicWorkerMainTemplate("kv binding ready")
 	case "d1-api":
-		message = "d1 binding ready"
+		return basicWorkerMainTemplate("d1 binding ready")
 	case "r2-api":
-		message = "r2 binding ready"
+		return basicWorkerMainTemplate("r2 binding ready")
+	default:
+		return basicWorkerMainTemplate("hello from flare-edge-cli")
 	}
+}
 
+func basicWorkerMainTemplate(message string) string {
 	return fmt.Sprintf(`package main
 
 import "syscall/js"

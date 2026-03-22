@@ -87,6 +87,12 @@ func (s *Service) Init(_ context.Context, options InitOptions) (InitResult, erro
 		CompatibilityDate: project.CompatibilityDate,
 		Observability:     &config.WranglerObservability{Enabled: true},
 	}
+	if project.Bindings.AI != nil {
+		wrangler.AI = &config.WranglerAIBinding{
+			Binding: project.Bindings.AI.Binding,
+			Remote:  project.Bindings.AI.Remote,
+		}
+	}
 
 	files := scaffoldFiles(project)
 	for path, content := range files {
