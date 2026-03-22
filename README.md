@@ -72,7 +72,26 @@ The implementation is intentionally biased toward agent use:
 
 ## Install
 
-Build the binary from the repository root:
+One-liner installer for Linux and macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Gladium-AI/flare-edge-cli/main/install.sh | sh
+```
+
+The installer detects your OS and CPU architecture, downloads the latest GitHub release archive, and installs `flare-edge-cli` into a user-local bin directory. It prefers `INSTALL_DIR` when set, then `XDG_BIN_HOME`, then `~/.local/bin`, then `~/bin`.
+
+Prebuilt release archives are attached automatically for:
+
+- `linux/amd64`
+- `linux/arm64`
+- `darwin/amd64`
+- `darwin/arm64`
+- `windows/amd64`
+- `windows/arm64`
+
+Release downloads are published on the [GitHub Releases](https://github.com/Gladium-AI/flare-edge-cli/releases) page.
+
+Build from source from the repository root:
 
 ```bash
 make build
