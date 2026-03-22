@@ -102,7 +102,7 @@ func DefaultProject(name, modulePath, packageName, template, compatDate, env str
 			WasmExecSource: "internal/generated/wasm_exec.js",
 		},
 	}
-	if template == "ai-text" {
+	if UsesAIBinding(template) {
 		project.Bindings.AI = &AIBinding{Binding: "AI", Remote: true}
 	}
 	return project
@@ -110,4 +110,13 @@ func DefaultProject(name, modulePath, packageName, template, compatDate, env str
 
 func (p Project) ArtifactPath() string {
 	return fmt.Sprintf("%s/%s", p.OutDir, p.WasmFile)
+}
+
+func UsesAIBinding(template string) bool {
+	switch template {
+	case "ai-text", "ai-chat", "ai-vision", "ai-stt", "ai-tts", "ai-image", "ai-embeddings":
+		return true
+	default:
+		return false
+	}
 }

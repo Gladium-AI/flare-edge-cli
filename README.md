@@ -237,11 +237,25 @@ Supported templates:
 - `edge-json`
 - `scheduled`
 - `ai-text`
+- `ai-chat`
+- `ai-vision`
+- `ai-stt`
+- `ai-tts`
+- `ai-image`
+- `ai-embeddings`
 - `kv-api`
 - `d1-api`
 - `r2-api`
 
-`ai-text` scaffolds a Go/Wasm Worker that reads `env.AI` through `syscall/js`, calls a default Workers AI model, and returns the model response as JSON.
+AI templates:
+
+- `ai-text`: backward-compatible simple text inference scaffold, now using `@cf/moonshotai/kimi-k2.5`
+- `ai-chat`: chat-style text generation scaffold using `@cf/moonshotai/kimi-k2.5`
+- `ai-vision`: vision scaffold using `@cf/moonshotai/kimi-k2.5`
+- `ai-stt`: speech-to-text scaffold using `@cf/deepgram/nova-3`
+- `ai-tts`: text-to-speech scaffold using `@cf/deepgram/aura-2-en`
+- `ai-image`: text-to-image scaffold using `@cf/black-forest-labs/flux-2-klein-9b`
+- `ai-embeddings`: embeddings scaffold using `@cf/qwen/qwen3-embedding-0.6b`
 
 ### `ai`
 
@@ -450,6 +464,18 @@ Scaffold a Go-based AI Worker:
 
 ```bash
 ./flare-edge-cli init ai-worker --module-path github.com/example/ai-worker --template ai-text
+```
+
+Scaffold a vision Worker:
+
+```bash
+./flare-edge-cli init ai-vision-worker --module-path github.com/example/ai-vision-worker --template ai-vision
+```
+
+Scaffold a speech-to-text Worker:
+
+```bash
+./flare-edge-cli init ai-stt-worker --module-path github.com/example/ai-stt-worker --template ai-stt
 ```
 
 Add Workers AI to an existing project:

@@ -30,7 +30,7 @@ func newInitAliasCommand(deps Dependencies) *cobra.Command {
 	cmd.Flags().StringVar(&options.Dir, "cwd", ".", "Target parent directory")
 	cmd.Flags().StringVar(&options.ModulePath, "module-path", "", "Go module path")
 	cmd.Flags().StringVar(&options.PackageName, "package", "", "Package name")
-	cmd.Flags().StringVar(&options.Template, "template", "edge-http", "Starter template: edge-http|edge-json|scheduled|kv-api|d1-api|r2-api|ai-text")
+	cmd.Flags().StringVar(&options.Template, "template", "edge-http", "Starter template: edge-http|edge-json|scheduled|kv-api|d1-api|r2-api|ai-text|ai-chat|ai-vision|ai-stt|ai-tts|ai-image|ai-embeddings")
 	cmd.Flags().StringVar(&options.CompatDate, "compat-date", "", "Compatibility date")
 	cmd.Flags().StringVar(&options.Env, "env", "", "Wrangler environment")
 	cmd.Flags().BoolVar(&options.UseJSONC, "use-jsonc", false, "Generate wrangler.jsonc")
