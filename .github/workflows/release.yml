@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.event.release.tag_name || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            archive_ext: tar.gz
+          - goos: linux
+            goarch: arm64
+            archive_ext: tar.gz
+          - goos: darwin
+            goarch: amd64
+            archive_ext: tar.gz
+          - goos: darwin
+            goarch: arm64
+            archive_ext: tar.gz
+          - goos: windows
+            goarch: amd64
+            archive_ext: zip
+          - goos: windows
+            goarch: arm64
+            archive_ext: zip
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build archive
+        shell: bash
+        env:
+          BINARY: flare-edge-cli
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          ARCHIVE_EXT: ${{ matrix.archive_ext }}
+          TAG: ${{ github.event.release.tag_name || github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          version="${TAG#refs/tags/}"
+          staging_dir="dist/${BINARY}_${version}_${GOOS}_${GOARCH}"
+          archive_base="${BINARY}_${version}_${GOOS}_${GOARCH}"
+          binary_name="${BINARY}"
+
+          if [ "${GOOS}" = "windows" ]; then
+            binary_name="${binary_name}.exe"
+          fi
+
+          mkdir -p "${staging_dir}"
+          GOOS="${GOOS}" GOARCH="${GOARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "${staging_dir}/${binary_name}" ./cmd/flare-edge-cli
+          cp LICENSE README.md "${staging_dir}/"
+
+          pushd dist >/dev/null
+          if [ "${ARCHIVE_EXT}" = "zip" ]; then
+            zip -rq "${archive_base}.zip" "${archive_base}"
+          else
+            tar -czf "${archive_base}.tar.gz" "${archive_base}"
+          fi
+          popd >/dev/null
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+          if-no-files-found: error
+
+  publish:
+    name: Publish Release Assets
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: dist
+          pattern: release-*
+          merge-multiple: true
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          shasum -a 256 *.tar.gz *.zip > checksums.txt
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
