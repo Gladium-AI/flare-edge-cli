@@ -71,6 +71,14 @@ The implementation is intentionally biased toward agent use:
 
 ## Install
 
+Install the Claude Code skill:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Gladium-AI/flare-edge-cli/main/install-skill.sh | sh
+```
+
+That installs the skill to `~/.claude/skills/flare-edge-cli` by default. Override the target directory with `SKILLS_DIR=/path/to/skills`.
+
 Build the binary from the repository root:
 
 ```bash
