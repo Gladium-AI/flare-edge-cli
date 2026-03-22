@@ -3,7 +3,7 @@
 .env.*
 .idea/
 .vscode/
-flare-edge-cli
+/flare-edge-cli
 bin/
 coverage.out
 dist/

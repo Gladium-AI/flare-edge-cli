@@ -91,6 +91,14 @@ Prebuilt release archives are attached automatically for:
 
 Release downloads are published on the [GitHub Releases](https://github.com/Gladium-AI/flare-edge-cli/releases) page.
 
+Install the Claude Code skill:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Gladium-AI/flare-edge-cli/main/install-skill.sh | sh
+```
+
+That installs the skill to `~/.claude/skills/flare-edge-cli` by default. Override the target directory with `SKILLS_DIR=/path/to/skills`.
+
 Build from source from the repository root:
 
 ```bash
