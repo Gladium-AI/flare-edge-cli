@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flare Edge CLI"
+  short_description: "Operate Go-based Cloudflare Workers and AI Workers with flare-edge-cli"
+  default_prompt: "Use flare-edge-cli to scaffold, validate, build, deploy, test, or tear down a Go-based Cloudflare Worker and return the concrete commands, outputs, and cleanup actions."
