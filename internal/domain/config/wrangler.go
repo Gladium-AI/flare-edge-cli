@@ -5,6 +5,7 @@ type WranglerConfig struct {
 	Main              string                       `json:"main"`
 	CompatibilityDate string                       `json:"compatibility_date"`
 	Observability     *WranglerObservability       `json:"observability,omitempty"`
+	AI                *WranglerAIBinding           `json:"ai,omitempty"`
 	Vars              map[string]string            `json:"vars,omitempty"`
 	KVNamespaces      []WranglerKVNamespace        `json:"kv_namespaces,omitempty"`
 	D1Databases       []WranglerD1Database         `json:"d1_databases,omitempty"`
@@ -19,11 +20,17 @@ type WranglerObservability struct {
 
 type WranglerEnvConfig struct {
 	Name         string                `json:"name,omitempty"`
+	AI           *WranglerAIBinding    `json:"ai,omitempty"`
 	Vars         map[string]string     `json:"vars,omitempty"`
 	KVNamespaces []WranglerKVNamespace `json:"kv_namespaces,omitempty"`
 	D1Databases  []WranglerD1Database  `json:"d1_databases,omitempty"`
 	R2Buckets    []WranglerR2Bucket    `json:"r2_buckets,omitempty"`
 	Routes       []WranglerRoute       `json:"routes,omitempty"`
+}
+
+type WranglerAIBinding struct {
+	Binding string `json:"binding"`
+	Remote  bool   `json:"remote,omitempty"`
 }
 
 type WranglerKVNamespace struct {

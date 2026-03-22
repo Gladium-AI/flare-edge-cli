@@ -1,6 +1,7 @@
 package cli
 
 import (
+	aisvc "github.com/paolo/flare-edge-cli/internal/service/ai"
 	authsvc "github.com/paolo/flare-edge-cli/internal/service/auth"
 	buildsvc "github.com/paolo/flare-edge-cli/internal/service/build"
 	compatsvc "github.com/paolo/flare-edge-cli/internal/service/compat"
@@ -19,6 +20,7 @@ import (
 )
 
 type Services struct {
+	AI       *aisvc.Service
 	Auth     *authsvc.Service
 	Build    *buildsvc.Service
 	Compat   *compatsvc.Service

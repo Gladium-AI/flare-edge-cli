@@ -23,6 +23,10 @@ func readmeTemplate(project config.Project) string {
 }
 
 func workerMainTemplate(project config.Project) string {
+	if project.Template == "ai-text" {
+		return aiWorkerMainTemplate()
+	}
+
 	message := "hello from flare-edge-cli"
 	switch project.Template {
 	case "edge-json":
@@ -51,6 +55,118 @@ func main() {
 	select {}
 }
 `, message)
+}
+
+func aiWorkerMainTemplate() string {
+	return `package main
+
+import "syscall/js"
+
+const defaultAIModel = "@cf/meta/llama-3.1-8b-instruct"
+
+func main() {
+	js.Global().Set("handleRequest", js.FuncOf(handleRequest))
+	js.Global().Set("handleScheduled", js.FuncOf(func(this js.Value, args []js.Value) any {
+		return nil
+	}))
+	select {}
+}
+
+func handleRequest(this js.Value, args []js.Value) any {
+	if len(args) < 2 {
+		return textResponse(500, "missing request or env")
+	}
+
+	request := args[0]
+	env := args[1]
+	ai := env.Get("AI")
+	if ai.IsUndefined() || ai.IsNull() {
+		return textResponse(500, "Workers AI binding \"AI\" is not configured")
+	}
+
+	url := js.Global().Get("URL").New(request.Get("url"))
+	prompt := url.Get("searchParams").Call("get", "prompt").String()
+	if prompt == "" {
+		prompt = "Say hello from a Go-based Cloudflare AI Worker."
+	}
+	model := url.Get("searchParams").Call("get", "model").String()
+	if model == "" {
+		model = defaultAIModel
+	}
+
+	input := js.Global().Get("Object").New()
+	input.Set("prompt", prompt)
+
+	return promise(func(resolve, reject js.Value) {
+		var onResolve js.Func
+		var onReject js.Func
+
+		onResolve = js.FuncOf(func(this js.Value, args []js.Value) any {
+			defer onResolve.Release()
+			defer onReject.Release()
+
+			payload := "null"
+			if len(args) > 0 {
+				payload = stringify(args[0])
+			}
+			resolve.Invoke(jsonResponse(payload))
+			return nil
+		})
+
+		onReject = js.FuncOf(func(this js.Value, args []js.Value) any {
+			defer onResolve.Release()
+			defer onReject.Release()
+
+			message := "Workers AI request failed"
+			if len(args) > 0 {
+				message = stringify(args[0])
+			}
+			resolve.Invoke(textResponse(502, message))
+			return nil
+		})
+
+		ai.Call("run", model, input).Call("then", onResolve).Call("catch", onReject)
+	})
+}
+
+func promise(fn func(resolve js.Value, reject js.Value)) js.Value {
+	executor := js.FuncOf(func(this js.Value, args []js.Value) any {
+		if len(args) >= 2 {
+			fn(args[0], args[1])
+		}
+		return nil
+	})
+	defer executor.Release()
+
+	return js.Global().Get("Promise").New(executor)
+}
+
+func stringify(value js.Value) string {
+	output := js.Global().Get("JSON").Call("stringify", value)
+	if output.IsUndefined() || output.IsNull() {
+		return "null"
+	}
+	return output.String()
+}
+
+func jsonResponse(body string) js.Value {
+	headers := js.Global().Get("Headers").New()
+	headers.Call("set", "content-type", "application/json")
+	options := js.Global().Get("Object").New()
+	options.Set("status", 200)
+	options.Set("headers", headers)
+	return js.Global().Get("Response").New(body, options)
+}
+
+func textResponse(status int, body string) js.Value {
+	headers := js.Global().Get("Headers").New()
+	headers.Call("set", "content-type", "text/plain; charset=utf-8")
+	options := js.Global().Get("Object").New()
+	options.Set("status", status)
+	options.Set("headers", headers)
+	return js.Global().Get("Response").New(body, options)
+}
+`
 }
 
 func workerShimTemplate(wasmFile string) string {

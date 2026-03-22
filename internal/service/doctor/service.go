@@ -81,6 +81,13 @@ func (s *Service) Run(ctx context.Context, options Options) (Result, error) {
 			} else {
 				checks = append(checks, Check{Name: "compatibility-date", Status: "ok", Details: project.CompatibilityDate})
 			}
+			if project.Bindings.AI != nil {
+				if project.Bindings.AI.Remote {
+					checks = append(checks, Check{Name: "ai-binding", Status: "ok", Details: project.Bindings.AI.Binding + " (remote)"})
+				} else {
+					checks = append(checks, Check{Name: "ai-binding", Status: "warning", Details: "Workers AI should use remote=true for development"})
+				}
+			}
 			if _, err := s.build.Wasm(ctx, buildsvc.WasmOptions{Path: options.Dir, NoShim: true, OutDir: filepath.Join(options.Dir, ".doctor-dist"), Clean: true}); err != nil {
 				checks = append(checks, Check{Name: "wasm-build", Status: "error", Details: err.Error()})
 			} else {
