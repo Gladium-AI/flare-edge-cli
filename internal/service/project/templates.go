@@ -85,11 +85,11 @@ func handleRequest(this js.Value, args []js.Value) any {
 	}
 
 	url := js.Global().Get("URL").New(request.Get("url"))
-	prompt := url.Get("searchParams").Call("get", "prompt").String()
+	prompt := searchParam(url, "prompt")
 	if prompt == "" {
 		prompt = "Say hello from a Go-based Cloudflare AI Worker."
 	}
-	model := url.Get("searchParams").Call("get", "model").String()
+	model := searchParam(url, "model")
 	if model == "" {
 		model = defaultAIModel
 	}
@@ -118,10 +118,14 @@ func handleRequest(this js.Value, args []js.Value) any {
 			defer onReject.Release()
 
 			message := "Workers AI request failed"
+			status := 502
 			if len(args) > 0 {
-				message = stringify(args[0])
+				message = errorPayload(args[0])
+				if code := errorStatus(args[0]); code > 0 {
+					status = code
+				}
 			}
-			resolve.Invoke(textResponse(502, message))
+			resolve.Invoke(jsonTextResponse(status, message))
 			return nil
 		})
 
@@ -149,11 +153,72 @@ func stringify(value js.Value) string {
 	return output.String()
 }
 
+func errorPayload(value js.Value) string {
+	payload := js.Global().Get("Object").New()
+	payload.Set("name", value.Get("name"))
+	payload.Set("message", value.Get("message"))
+	payload.Set("code", firstDefined(value, "code", "status"))
+	payload.Set("internalCode", firstDefined(value, "internalCode", "internal_code"))
+
+	cause := value.Get("cause")
+	if !cause.IsUndefined() && !cause.IsNull() {
+		causePayload := js.Global().Get("Object").New()
+		causePayload.Set("name", cause.Get("name"))
+		causePayload.Set("message", cause.Get("message"))
+		causePayload.Set("code", firstDefined(cause, "code", "status"))
+		causePayload.Set("internalCode", firstDefined(cause, "internalCode", "internal_code"))
+		payload.Set("cause", causePayload)
+	}
+
+	text := stringify(payload)
+	if text == "{}" || text == "null" {
+		return "{\"message\":\"Workers AI request failed\"}"
+	}
+	return text
+}
+
+func errorStatus(value js.Value) int {
+	for _, key := range []string{"status", "statusCode", "code"} {
+		field := value.Get(key)
+		if !field.IsUndefined() && !field.IsNull() && field.Type() == js.TypeNumber {
+			return field.Int()
+		}
+	}
+	return 0
+}
+
+func firstDefined(value js.Value, keys ...string) js.Value {
+	for _, key := range keys {
+		field := value.Get(key)
+		if !field.IsUndefined() && !field.IsNull() {
+			return field
+		}
+	}
+	return js.Null()
+}
+
+func searchParam(url js.Value, key string) string {
+	value := url.Get("searchParams").Call("get", key)
+	if value.IsUndefined() || value.IsNull() {
+		return ""
+	}
+	return value.String()
+}
+
 func jsonResponse(body string) js.Value {
 	headers := js.Global().Get("Headers").New()
 	headers.Call("set", "content-type", "application/json")
 	options := js.Global().Get("Object").New()
 	options.Set("status", 200)
+	options.Set("headers", headers)
+	return js.Global().Get("Response").New(body, options)
+}
+
+func jsonTextResponse(status int, body string) js.Value {
+	headers := js.Global().Get("Headers").New()
+	headers.Call("set", "content-type", "application/json")
+	options := js.Global().Get("Object").New()
+	options.Set("status", status)
 	options.Set("headers", headers)
 	return js.Global().Get("Response").New(body, options)
 }
