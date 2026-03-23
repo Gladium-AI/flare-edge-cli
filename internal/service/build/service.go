@@ -85,14 +85,25 @@ func (s *Service) Wasm(ctx context.Context, options WasmOptions) (WasmResult, er
 	if err := s.fs.MkdirAll(outDir, 0o755); err != nil {
 		return WasmResult{}, err
 	}
+	compileArtifact, err := filepath.Abs(artifact)
+	if err != nil {
+		return WasmResult{}, fmt.Errorf("resolve artifact path: %w", err)
+	}
 
 	entry := defaultString(options.Entry, project.Entry)
 	compiler := "go"
 	if options.TinyGo {
 		compiler = "tinygo"
 	}
-	if err := s.compile(ctx, compiler, options.Path, entry, artifact, options.Optimize); err != nil {
+	if err := s.compile(ctx, compiler, options.Path, entry, compileArtifact, options.Optimize); err != nil {
 		return WasmResult{}, err
+	}
+	exists, err := s.fs.Exists(artifact)
+	if err != nil {
+		return WasmResult{}, err
+	}
+	if !exists {
+		return WasmResult{}, fmt.Errorf("wasm build reported success but artifact is missing: %s", artifact)
 	}
 
 	files := []string{artifact}
