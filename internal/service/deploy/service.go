@@ -77,16 +77,7 @@ func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
 		wranglerCfg.CompatibilityDate = options.CompatDate
 	}
 	if len(options.Var) > 0 {
-		if wranglerCfg.Vars == nil {
-			wranglerCfg.Vars = map[string]string{}
-		}
-		for _, item := range options.Var {
-			key, value, ok := splitPair(item)
-			if ok {
-				wranglerCfg.Vars[key] = value
-				project.Bindings.Vars[key] = value
-			}
-		}
+		applyVars(&project, &wranglerCfg, options.Var)
 	}
 	for _, route := range options.Route {
 		wranglerCfg.Routes = config.UpsertRoute(wranglerCfg.Routes, config.WranglerRoute{Pattern: route})
@@ -225,6 +216,26 @@ func splitPair(value string) (string, string, bool) {
 		}
 	}
 	return "", "", false
+}
+
+func applyVars(project *config.Project, wranglerCfg *config.WranglerConfig, vars []string) {
+	if len(vars) == 0 {
+		return
+	}
+	if wranglerCfg.Vars == nil {
+		wranglerCfg.Vars = map[string]string{}
+	}
+	if project.Bindings.Vars == nil {
+		project.Bindings.Vars = map[string]string{}
+	}
+	for _, item := range vars {
+		key, value, ok := splitPair(item)
+		if !ok {
+			continue
+		}
+		wranglerCfg.Vars[key] = value
+		project.Bindings.Vars[key] = value
+	}
 }
 
 func canFallbackToPlainDeploy(options Options, err error) bool {
