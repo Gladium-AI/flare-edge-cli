@@ -19,10 +19,12 @@ type Service struct {
 type InitOptions struct {
 	Dir         string
 	Name        string
+	Runtime     string
 	ModulePath  string
 	PackageName string
 	Template    string
 	CompatDate  string
+	NodeCompat  bool
 	Env         string
 	UseJSONC    bool
 	WithGit     bool
@@ -43,10 +45,13 @@ type InfoOptions struct {
 
 type InfoResult struct {
 	Name              string                     `json:"name"`
+	Runtime           string                     `json:"runtime"`
 	Entrypoint        string                     `json:"entrypoint"`
+	Main              string                     `json:"main"`
 	WorkerName        string                     `json:"worker_name"`
 	CompatibilityDate string                     `json:"compatibility_date"`
 	CompatibilityMode string                     `json:"compatibility_profile"`
+	NodeCompat        bool                       `json:"nodejs_compat,omitempty"`
 	OutputDir         string                     `json:"output_dir"`
 	WasmFile          string                     `json:"wasm_file"`
 	ShimFile          string                     `json:"shim_file"`
@@ -72,20 +77,39 @@ func (s *Service) Init(_ context.Context, options InitOptions) (InitResult, erro
 		return InitResult{}, fmt.Errorf("project directory already exists: %s", projectDir)
 	}
 
+	runtime := normalizeRuntime(options.Runtime)
+	template, err := resolveTemplate(runtime, options.Template)
+	if err != nil {
+		return InitResult{}, err
+	}
+
 	project := config.DefaultProject(
 		options.Name,
 		defaultString(options.ModulePath, "github.com/paolo/"+options.Name),
 		defaultString(options.PackageName, "main"),
-		defaultString(options.Template, "edge-http"),
+		template,
 		options.CompatDate,
 		options.Env,
+	)
+	project = config.DefaultProjectWithRuntime(
+		options.Name,
+		project.ModulePath,
+		project.PackageName,
+		template,
+		options.CompatDate,
+		options.Env,
+		runtime,
+		options.NodeCompat,
 	)
 
 	wrangler := config.WranglerConfig{
 		Name:              project.WorkerName,
-		Main:              filepath.ToSlash(filepath.Join(project.OutDir, project.ShimFile)),
+		Main:              project.MainPath(),
 		CompatibilityDate: project.CompatibilityDate,
 		Observability:     &config.WranglerObservability{Enabled: true},
+	}
+	if project.NodeCompat {
+		wrangler.CompatibilityFlags = append(wrangler.CompatibilityFlags, "nodejs_compat")
 	}
 	if project.Bindings.AI != nil {
 		wrangler.AI = &config.WranglerAIBinding{
@@ -129,10 +153,13 @@ func (s *Service) Info(_ context.Context, options InfoOptions) (InfoResult, erro
 
 	result := InfoResult{
 		Name:              project.ProjectName,
+		Runtime:           project.EffectiveRuntime(),
 		Entrypoint:        project.Entry,
+		Main:              project.MainPath(),
 		WorkerName:        project.WorkerName,
 		CompatibilityDate: project.CompatibilityDate,
 		CompatibilityMode: project.CompatibilityProfile,
+		NodeCompat:        project.NodeCompat,
 		OutputDir:         project.OutDir,
 		WasmFile:          project.WasmFile,
 		ShimFile:          project.ShimFile,
@@ -153,4 +180,37 @@ func defaultString(value, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func normalizeRuntime(value string) string {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case "", "go", "go-wasm", "wasm":
+		return config.RuntimeGoWasm
+	case "js", "javascript", "js-worker", "node", "nodejs":
+		return config.RuntimeJavaScript
+	default:
+		return value
+	}
+}
+
+func resolveTemplate(runtime, template string) (string, error) {
+	selected := strings.TrimSpace(template)
+	if selected == "" {
+		if runtime == config.RuntimeJavaScript {
+			return "js-worker", nil
+		}
+		return "edge-http", nil
+	}
+
+	if runtime == config.RuntimeJavaScript {
+		if selected != "js-worker" {
+			return "", fmt.Errorf("runtime %q only supports template %q", runtime, "js-worker")
+		}
+		return selected, nil
+	}
+
+	if selected == "js-worker" {
+		return "", fmt.Errorf("template %q requires --runtime js", selected)
+	}
+	return selected, nil
 }
