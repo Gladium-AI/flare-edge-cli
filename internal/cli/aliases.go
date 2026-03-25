@@ -81,7 +81,7 @@ func newCheckAliasCommand(deps Dependencies) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&options.Path, "path", ".", "Project path")
 	cmd.Flags().StringVar(&options.Entry, "entry", "", "Package or file entry selector")
-	cmd.Flags().StringVar(&options.Profile, "profile", "worker-wasm", "Profile name")
+	cmd.Flags().StringVar(&options.Profile, "profile", "", "Profile name")
 	cmd.Flags().StringVar(&options.FailOn, "fail-on", "error", "Threshold")
 	cmd.Flags().StringArrayVar(&options.Exclude, "exclude", nil, "Exclude globs")
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Emit machine-readable JSON")

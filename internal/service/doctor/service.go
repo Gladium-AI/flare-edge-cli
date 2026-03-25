@@ -46,12 +46,6 @@ func NewService(store *configstore.Store, fs *fs.FileSystem, runner process.Runn
 func (s *Service) Run(ctx context.Context, options Options) (Result, error) {
 	var checks []Check
 
-	if version, err := s.goTool.Version(ctx, options.Dir); err == nil {
-		checks = append(checks, Check{Name: "go", Status: "ok", Details: version})
-	} else {
-		checks = append(checks, Check{Name: "go", Status: "error", Details: err.Error()})
-	}
-
 	if result, err := s.runner.Run(ctx, process.Command{Name: "wrangler", Args: []string{"--version"}, Dir: options.Dir}); err == nil {
 		checks = append(checks, Check{Name: "wrangler", Status: "ok", Details: result.Stdout})
 	} else {
@@ -76,6 +70,7 @@ func (s *Service) Run(ctx context.Context, options Options) (Result, error) {
 			checks = append(checks, Check{Name: "project-config", Status: "error", Details: err.Error()})
 		} else {
 			checks = append(checks, Check{Name: "project-config", Status: "ok", Details: project.WorkerName})
+			checks = append(checks, Check{Name: "runtime", Status: "ok", Details: project.EffectiveRuntime()})
 			if project.CompatibilityDate == "" {
 				checks = append(checks, Check{Name: "compatibility-date", Status: "error", Details: "compatibility date missing"})
 			} else {
@@ -88,14 +83,33 @@ func (s *Service) Run(ctx context.Context, options Options) (Result, error) {
 					checks = append(checks, Check{Name: "ai-binding", Status: "warning", Details: "Workers AI should use remote=true for development"})
 				}
 			}
-			if _, err := s.build.Wasm(ctx, buildsvc.WasmOptions{Path: options.Dir, NoShim: true, OutDir: filepath.Join(options.Dir, ".doctor-dist"), Clean: true}); err != nil {
-				checks = append(checks, Check{Name: "wasm-build", Status: "error", Details: err.Error()})
+			if project.RequiresBuild() {
+				if version, err := s.goTool.Version(ctx, options.Dir); err == nil {
+					checks = append(checks, Check{Name: "go", Status: "ok", Details: version})
+				} else {
+					checks = append(checks, Check{Name: "go", Status: "error", Details: err.Error()})
+				}
+				if _, err := s.build.Wasm(ctx, buildsvc.WasmOptions{Path: options.Dir, NoShim: true, OutDir: filepath.Join(options.Dir, ".doctor-dist"), Clean: true}); err != nil {
+					checks = append(checks, Check{Name: "wasm-build", Status: "error", Details: err.Error()})
+				} else {
+					checks = append(checks, Check{Name: "wasm-build", Status: "ok", Details: "Wasm target buildable"})
+				}
 			} else {
-				checks = append(checks, Check{Name: "wasm-build", Status: "ok", Details: "Wasm target buildable"})
+				checks = append(checks, Check{Name: "go", Status: "skipped", Details: "not required for js-worker runtime"})
+				if _, err := s.build.Build(ctx, buildsvc.WasmOptions{Path: options.Dir}); err != nil {
+					checks = append(checks, Check{Name: "worker-entry", Status: "error", Details: err.Error()})
+				} else {
+					checks = append(checks, Check{Name: "worker-entry", Status: "ok", Details: "JavaScript worker entrypoint present"})
+				}
 			}
 		}
 	} else {
 		checks = append(checks, Check{Name: "project-config", Status: "warning", Details: "flare-edge.json not found"})
+		if version, err := s.goTool.Version(ctx, options.Dir); err == nil {
+			checks = append(checks, Check{Name: "go", Status: "ok", Details: version})
+		} else {
+			checks = append(checks, Check{Name: "go", Status: "error", Details: err.Error()})
+		}
 	}
 
 	return Result{Checks: checks}, nil

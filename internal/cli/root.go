@@ -11,7 +11,7 @@ func NewRootCommand(deps Dependencies) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:           "flare-edge-cli",
-		Short:         "Build and deploy Go/Wasm Workers with Cloudflare",
+		Short:         "Build and deploy Cloudflare Workers",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {

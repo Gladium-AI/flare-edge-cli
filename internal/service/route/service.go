@@ -162,7 +162,7 @@ func contains(value, needle string) bool {
 }
 
 func (s *Service) apply(ctx context.Context, dir, env string) (Result, error) {
-	if _, err := s.build.Wasm(ctx, buildsvc.WasmOptions{Path: dir}); err != nil {
+	if _, err := s.build.Build(ctx, buildsvc.WasmOptions{Path: dir}); err != nil {
 		return Result{}, err
 	}
 	raw, err := s.wrangler.Run(ctx, dir, env, "deploy")

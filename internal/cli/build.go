@@ -15,10 +15,10 @@ func newBuildCommand(deps Dependencies) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "build",
-		Short:   "Build Wasm artifacts for Workers",
+		Short:   "Build or stage Worker artifacts",
 		Aliases: []string{"compile"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			result, err := deps.Services.Build.Wasm(context.Background(), options)
+			result, err := deps.Services.Build.Build(context.Background(), options)
 			if err != nil {
 				return err
 			}

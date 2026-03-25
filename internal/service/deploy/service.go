@@ -50,20 +50,30 @@ func NewService(store *configstore.Store, fs *fs.FileSystem, build *buildsvc.Ser
 }
 
 func (s *Service) Deploy(ctx context.Context, options Options) (Result, error) {
-	compatibility, err := s.compat.Check(ctx, compatsvc.CheckOptions{Path: options.Dir, Profile: "worker-wasm", FailOn: "error"})
-	if err != nil {
-		return Result{}, err
-	}
-	if compatibility.ErrorCount > 0 {
-		return Result{}, fmt.Errorf("compatibility check failed with %d error(s)", compatibility.ErrorCount)
-	}
-
-	buildResult, err := s.build.Wasm(ctx, buildsvc.WasmOptions{Path: options.Dir})
-	if err != nil {
-		return Result{}, err
-	}
-
 	project, wranglerCfg, err := shared.LoadProjectAndWrangler(options.Dir, s.store, s.fs)
+	if err != nil {
+		return Result{}, err
+	}
+
+	compatibility := compatsvc.CheckResult{
+		Profile: project.CompatibilityProfile,
+		FailOn:  "error",
+	}
+	if project.RequiresBuild() {
+		compatibility, err = s.compat.Check(ctx, compatsvc.CheckOptions{
+			Path:    options.Dir,
+			Profile: project.CompatibilityProfile,
+			FailOn:  "error",
+		})
+		if err != nil {
+			return Result{}, err
+		}
+		if compatibility.ErrorCount > 0 {
+			return Result{}, fmt.Errorf("compatibility check failed with %d error(s)", compatibility.ErrorCount)
+		}
+	}
+
+	buildResult, err := s.build.Build(ctx, buildsvc.WasmOptions{Path: options.Dir})
 	if err != nil {
 		return Result{}, err
 	}

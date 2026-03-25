@@ -52,7 +52,7 @@ func newCompatCheckCommand(deps Dependencies) *cobra.Command {
 
 	cmd.Flags().StringVar(&options.Path, "path", ".", "Project path to analyze")
 	cmd.Flags().StringVar(&options.Entry, "entry", "", "Package or file entry selector")
-	cmd.Flags().StringVar(&options.Profile, "profile", "worker-wasm", "Compatibility rule profile")
+	cmd.Flags().StringVar(&options.Profile, "profile", "", "Compatibility rule profile")
 	cmd.Flags().BoolVar(&options.Strict, "strict", false, "Enable stricter compatibility checks")
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Emit machine-readable JSON")
 	cmd.Flags().BoolVar(&sarif, "sarif", false, "Emit SARIF JSON")
