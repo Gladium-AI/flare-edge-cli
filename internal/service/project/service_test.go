@@ -83,3 +83,60 @@ func TestInitAITemplate(t *testing.T) {
 		})
 	}
 }
+
+func TestInitJavaScriptTemplateWithNodeCompat(t *testing.T) {
+	t.Parallel()
+
+	filesystem := fs.New()
+	store := configstore.New(filesystem)
+	service := NewService(store, filesystem)
+	root := t.TempDir()
+
+	result, err := service.Init(context.Background(), InitOptions{
+		Dir:        root,
+		Name:       "js-worker",
+		Runtime:    "js",
+		NodeCompat: true,
+		WithGit:    true,
+	})
+	if err != nil {
+		t.Fatalf("init project: %v", err)
+	}
+
+	project, err := store.LoadProject(result.ProjectDir)
+	if err != nil {
+		t.Fatalf("load project: %v", err)
+	}
+	if project.EffectiveRuntime() != "js-worker" {
+		t.Fatalf("unexpected runtime: %q", project.EffectiveRuntime())
+	}
+	if project.Template != "js-worker" {
+		t.Fatalf("unexpected template: %q", project.Template)
+	}
+	if !project.NodeCompat {
+		t.Fatalf("expected node compatibility to be enabled")
+	}
+	if project.MainPath() != "src/worker.mjs" {
+		t.Fatalf("unexpected main path: %q", project.MainPath())
+	}
+
+	wranglerCfg, err := store.LoadWrangler(result.ProjectDir, project.WranglerConfig)
+	if err != nil {
+		t.Fatalf("load wrangler: %v", err)
+	}
+	if wranglerCfg.Main != "src/worker.mjs" {
+		t.Fatalf("unexpected wrangler main: %q", wranglerCfg.Main)
+	}
+	if len(wranglerCfg.CompatibilityFlags) != 1 || wranglerCfg.CompatibilityFlags[0] != "nodejs_compat" {
+		t.Fatalf("unexpected compatibility flags: %+v", wranglerCfg.CompatibilityFlags)
+	}
+
+	workerPath := filepath.Join(result.ProjectDir, "src", "worker.mjs")
+	workerMain, err := filesystem.ReadFile(workerPath)
+	if err != nil {
+		t.Fatalf("read js worker: %v", err)
+	}
+	if !strings.Contains(string(workerMain), `export default`) {
+		t.Fatalf("expected JavaScript worker module scaffold, got %s", string(workerMain))
+	}
+}

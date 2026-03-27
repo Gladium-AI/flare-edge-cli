@@ -3,17 +3,18 @@
 [![Go Version](https://img.shields.io/badge/Go-1.26.0-00ADD8?logo=go)](https://go.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-`flare-edge-cli` scaffolds, validates, builds, deploys, tails, and tears down Go-for-Wasm Cloudflare Workers projects. It generates the Worker shim and Wrangler config, runs compatibility checks against a Workers/Wasm profile, and delegates Cloudflare operations to Wrangler and Cloudflare APIs where appropriate.
+`flare-edge-cli` scaffolds, validates, builds, deploys, tails, and tears down Cloudflare Workers projects. It supports both Go-for-Wasm Workers and native JavaScript module Workers, generates Wrangler config, runs Go compatibility checks where appropriate, and delegates Cloudflare operations to Wrangler and Cloudflare APIs where appropriate.
 
-This CLI is designed first for AI agents. Humans can use it directly, but the primary goal is to give coding agents a stable, scriptable control surface for creating and operating Cloudflare edge functions and lightweight microservices in Go.
+This CLI is designed first for AI agents. Humans can use it directly, but the primary goal is to give coding agents a stable, scriptable control surface for creating and operating Cloudflare edge functions and lightweight microservices in Go or native JavaScript.
 
 ## Why This Tool Exists
 
-`flare-edge-cli` exists to standardize the end-to-end agent workflow for Go on Cloudflare:
+`flare-edge-cli` exists to standardize the end-to-end agent workflow for Cloudflare Workers:
 
 - scaffold a deployable project with deterministic structure
 - validate whether the Go code fits Workers/Wasm constraints
-- build the `.wasm` artifact and Worker shim correctly every time
+- build the `.wasm` artifact and Worker shim correctly for Go projects
+- stage native JavaScript Worker entrypoints without changing the deploy flow
 - provision and manage Cloudflare resources through one consistent interface
 - emit machine-readable output that agents can inspect and chain into later actions
 - tear down remote and local side effects when an ephemeral environment is no longer needed
@@ -29,7 +30,7 @@ The intended operator is usually an AI agent acting on behalf of a developer. Be
 
 ## Primary Use Case
 
-The primary use case is simple: an AI agent needs a standard way to create and deploy an edge function or small microservice on Cloudflare using Go without rebuilding the same scaffolding, compatibility analysis, build orchestration, deployment logic, and cleanup flow for every task.
+The primary use case is simple: an AI agent needs a standard way to create and deploy an edge function or small microservice on Cloudflare without rebuilding the same scaffolding, compatibility analysis, build orchestration, deployment logic, and cleanup flow for every task.
 
 This means `flare-edge-cli` is not just a deploy wrapper. It is an agent-oriented execution surface for:
 
@@ -43,9 +44,10 @@ This means `flare-edge-cli` is not just a deploy wrapper. It is an agent-oriente
 
 ## What It Does
 
-- Scaffolds Go Worker projects with a reproducible layout
+- Scaffolds Go/Wasm and native JavaScript Worker projects with a reproducible layout
 - Validates Go code against a Workers/Wasm compatibility profile
-- Builds `.wasm` artifacts and the JavaScript Worker shim
+- Builds `.wasm` artifacts and the JavaScript Worker shim for Go projects
+- Stages native JavaScript Worker entrypoints for deploy, route, and doctor workflows
 - Runs local or remote dev sessions through Wrangler
 - Configures Workers AI bindings for Go-based AI Workers
 - Deploys versioned Workers and manages routes, secrets, KV, D1, R2, and releases
@@ -65,10 +67,11 @@ The implementation is intentionally biased toward agent use:
 
 ## Requirements
 
-- Go `1.26.0`
+- Go `1.26.0` for Go/Wasm projects
 - [Wrangler](https://developers.cloudflare.com/workers/wrangler/) installed and available on `PATH`
 - Cloudflare authentication already configured through Wrangler or an API token
 - Optional: TinyGo for `--tinygo` builds
+- Optional: Cloudflare `nodejs_compat` compatibility flag for JavaScript Workers via `project init --node-compat`
 
 ## Install
 
@@ -123,10 +126,16 @@ go run ./cmd/flare-edge-cli --help
 
 ## Typical Workflow
 
-Initialize a project:
+Initialize a Go project:
 
 ```bash
 ./flare-edge-cli project init my-worker --module-path github.com/example/my-worker
+```
+
+Initialize a JavaScript Worker:
+
+```bash
+./flare-edge-cli project init my-js-worker --runtime js
 ```
 
 Check compatibility:
@@ -161,7 +170,9 @@ Clean everything up later:
 
 ## Generated Project Layout
 
-`project init` creates a Go Worker project with these important files:
+`project init` creates runtime-specific Worker projects.
+
+Go/Wasm projects:
 
 ```text
 <project>/
@@ -182,6 +193,17 @@ Important generated paths:
 - `dist/app.wasm`: compiled artifact after build
 - `dist/worker.mjs`: Worker shim after build
 
+JavaScript projects:
+
+```text
+<project>/
+  flare-edge.json
+  wrangler.jsonc
+  src/worker.mjs
+  README.md
+  .gitignore
+```
+
 ## Configuration Files
 
 ### `flare-edge.json`
@@ -189,10 +211,11 @@ Important generated paths:
 This is the CLI’s typed project metadata file. It tracks:
 
 - project and module names
-- Go entrypoint
+- runtime, entrypoint, and deployed main module
 - output directory and artifact names
 - Worker name
 - compatibility date and profile
+- optional Node.js compatibility flag
 - bindings for KV, D1, R2, vars, and secrets
 - generated shim metadata
 
@@ -254,12 +277,13 @@ Notes:
 Create and inspect projects.
 
 ```bash
-./flare-edge-cli project init <name> [--cwd <dir>] [--module-path <go_module>] [--package <pkg>] [--template <name>] [--compat-date <YYYY-MM-DD>] [--env <name>] [--use-jsonc] [--with-git] [--yes]
+./flare-edge-cli project init <name> [--cwd <dir>] [--runtime go|js] [--module-path <module>] [--package <pkg>] [--template <name>] [--compat-date <YYYY-MM-DD>] [--node-compat] [--env <name>] [--use-jsonc] [--with-git] [--yes]
 ./flare-edge-cli project info [--cwd <dir>] [--json] [--show-generated] [--show-bindings]
 ```
 
 Supported templates:
 
+- `js-worker`
 - `edge-http`
 - `edge-json`
 - `scheduled`
@@ -284,6 +308,11 @@ AI templates:
 - `ai-image`: text-to-image scaffold using `@cf/black-forest-labs/flux-2-klein-9b`
 - `ai-embeddings`: embeddings scaffold using `@cf/qwen/qwen3-embedding-0.6b`
 
+Notes:
+
+- `--runtime js` defaults to the `js-worker` template
+- `--node-compat` only adds Wrangler's `nodejs_compat` compatibility flag; it does not switch the runtime to Node.js automatically
+
 ### `ai`
 
 Manage the Workers AI binding stored in local project config.
@@ -304,15 +333,15 @@ Notes:
 Run the Go/Wasm compatibility analyzer or inspect built-in rules.
 
 ```bash
-./flare-edge-cli compat check [--path <dir>] [--entry <pkg-or-file>] [--profile worker-wasm] [--strict] [--json] [--sarif] [--fail-on warning|error] [--exclude <glob>]
+./flare-edge-cli compat check [--path <dir>] [--entry <pkg-or-file>] [--profile <name>] [--strict] [--json] [--sarif] [--fail-on warning|error] [--exclude <glob>]
 ./flare-edge-cli compat rules [--json] [--severity error|warning|info]
 ```
 
-Diagnostics include structured fields such as rule ID, severity, file, line, message, why, and fix hint.
+Diagnostics include structured fields such as rule ID, severity, file, line, message, why, and fix hint. JavaScript Worker projects skip Go static analysis and return an empty result.
 
 ### `build`
 
-Compile Go to Wasm and inspect artifacts.
+Build Go/Wasm projects or stage JavaScript Workers for deploy.
 
 ```bash
 ./flare-edge-cli build [--path <dir>] [--entry <pkg-or-file>] [--out-dir <dir>] [--out-file <file.wasm>] [--shim-out <file>] [--target js/wasm] [--optimize size|speed] [--tinygo] [--no-shim] [--clean] [--json]
@@ -326,6 +355,8 @@ The build writes:
 - `dist/worker.mjs`
 - `dist/wasm_exec.js`
 
+For JavaScript projects, `build` validates that the configured Worker entrypoint exists and returns it without compiling. `build wasm` remains the explicit Go-only subcommand.
+
 ### `dev`
 
 Start a Wrangler-powered development session.
@@ -338,7 +369,7 @@ Flags `--open` and `--watch` exist as reserved compatibility flags.
 
 ### `deploy`
 
-Validate, build, and deploy the Worker.
+Validate, build if needed, and deploy the Worker.
 
 ```bash
 ./flare-edge-cli deploy [--path <dir>] [--env <name>] [--name <worker>] [--compat-date <YYYY-MM-DD>] [--route <pattern>] [--custom-domain <hostname>] [--workers-dev] [--dry-run] [--upload-only] [--message <text>] [--var <KEY=VALUE>] [--keep-vars] [--minify] [--latest] [--json]
@@ -346,8 +377,9 @@ Validate, build, and deploy the Worker.
 
 Behavior:
 
-- runs compatibility checks first
-- builds the Wasm artifact and Worker shim
+- runs compatibility checks first for Go/Wasm projects
+- builds the Wasm artifact and Worker shim for Go/Wasm projects
+- stages the configured main module for JavaScript projects
 - updates Wrangler config
 - deploys through Wrangler
 - can attach routes and custom domains during deploy
@@ -439,12 +471,12 @@ Check whether the local environment and project are deployable.
 
 `doctor` checks:
 
-- Go installation
+- Go installation when the project runtime requires it
 - Wrangler installation
 - auth health
 - project config validity
 - compatibility date presence
-- Wasm build readiness
+- Wasm build readiness for Go projects or JavaScript entrypoint presence for JS projects
 - binding/config sanity
 
 ### `teardown`
@@ -477,7 +509,7 @@ flare-edge-cli tail       -> flare-edge-cli logs tail
 flare-edge-cli rollback   -> flare-edge-cli release rollback
 ```
 
-The top-level `build` command is itself the primary Wasm build entrypoint, with `build wasm` available as an explicit subcommand.
+The top-level `build` command is runtime-aware, with `build wasm` available as the explicit Go/Wasm subcommand.
 
 ## Examples
 
@@ -485,6 +517,18 @@ Scaffold a JSON worker:
 
 ```bash
 ./flare-edge-cli init test-project --module-path github.com/example/test-project --template edge-json
+```
+
+Scaffold a native JavaScript Worker:
+
+```bash
+./flare-edge-cli init js-worker --runtime js
+```
+
+Scaffold a JavaScript Worker with Node.js compatibility enabled:
+
+```bash
+./flare-edge-cli init js-worker --runtime js --node-compat
 ```
 
 Scaffold a Go-based AI Worker:

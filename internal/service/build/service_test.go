@@ -97,3 +97,51 @@ func TestWasmUsesStableArtifactPathAndRequiresArtifact(t *testing.T) {
 		t.Fatalf("expected artifact to exist at %s", expectedArtifact)
 	}
 }
+
+func TestBuildStagesJavaScriptWorkerWithoutCompiling(t *testing.T) {
+	tmpDir := t.TempDir()
+	projectDir := filepath.Join(tmpDir, "services", "js-worker")
+	filesystem := fs.New()
+	store := configstore.New(filesystem)
+
+	project := config.DefaultProjectWithRuntime(
+		"js-worker",
+		"github.com/paolo/js-worker",
+		"main",
+		"js-worker",
+		config.DefaultCompatibilityDate,
+		"",
+		config.RuntimeJavaScript,
+		true,
+	)
+	if err := store.SaveProject(projectDir, project); err != nil {
+		t.Fatalf("save project: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(projectDir, "src"), 0o755); err != nil {
+		t.Fatalf("mkdir src: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectDir, "src", "worker.mjs"), []byte("export default {};"), 0o644); err != nil {
+		t.Fatalf("write worker: %v", err)
+	}
+
+	runner := &fakeRunner{}
+	service := NewService(store, filesystem, runner, &toolchain.GoToolchain{})
+
+	result, err := service.Build(context.Background(), WasmOptions{Path: projectDir})
+	if err != nil {
+		t.Fatalf("build js worker: %v", err)
+	}
+	if result.Built {
+		t.Fatalf("expected JavaScript worker build to be skipped")
+	}
+	if result.Runtime != config.RuntimeJavaScript {
+		t.Fatalf("unexpected runtime: %q", result.Runtime)
+	}
+	expectedMain := filepath.Join(projectDir, "src", "worker.mjs")
+	if result.Main != expectedMain {
+		t.Fatalf("unexpected main path: %q", result.Main)
+	}
+	if len(runner.last.Args) != 0 {
+		t.Fatalf("expected no compiler invocation, got %v", runner.last.Args)
+	}
+}

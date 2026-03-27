@@ -2,15 +2,18 @@ package compat
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/token"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 
 	domaincompat "github.com/paolo/flare-edge-cli/internal/domain/compat"
+	"github.com/paolo/flare-edge-cli/internal/domain/config"
 	"github.com/paolo/flare-edge-cli/internal/domain/diagnostic"
 	"golang.org/x/tools/go/packages"
 )
@@ -39,6 +42,16 @@ func NewService() *Service {
 }
 
 func (s *Service) Check(_ context.Context, options CheckOptions) (CheckResult, error) {
+	if project, ok, err := loadProject(options.Path); err != nil {
+		return CheckResult{}, err
+	} else if ok && !project.RequiresBuild() {
+		return CheckResult{
+			Profile:     defaultProjectProfile(project, options.Profile),
+			FailOn:      defaultString(options.FailOn, "error"),
+			Diagnostics: nil,
+		}, nil
+	}
+
 	loadMode := packages.NeedName | packages.NeedCompiledGoFiles | packages.NeedSyntax
 	cfg := &packages.Config{
 		Mode: loadMode,
@@ -105,6 +118,36 @@ func (s *Service) Check(_ context.Context, options CheckOptions) (CheckResult, e
 		}
 	}
 	return result, nil
+}
+
+func loadProject(dir string) (config.Project, bool, error) {
+	if dir == "" {
+		dir = "."
+	}
+	path := filepath.Join(dir, config.DefaultProjectConfigFile)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return config.Project{}, false, nil
+		}
+		return config.Project{}, false, fmt.Errorf("read %s: %w", path, err)
+	}
+
+	var project config.Project
+	if err := json.Unmarshal(data, &project); err != nil {
+		return config.Project{}, false, fmt.Errorf("decode %s: %w", path, err)
+	}
+	return project, true, nil
+}
+
+func defaultProjectProfile(project config.Project, profile string) string {
+	if profile != "" {
+		return profile
+	}
+	if project.CompatibilityProfile != "" {
+		return project.CompatibilityProfile
+	}
+	return defaultString(profile, "worker-wasm")
 }
 
 func (s *Service) Rules(severity string) []domaincompat.Rule {

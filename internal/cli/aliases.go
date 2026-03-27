@@ -28,10 +28,12 @@ func newInitAliasCommand(deps Dependencies) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&options.Dir, "cwd", ".", "Target parent directory")
-	cmd.Flags().StringVar(&options.ModulePath, "module-path", "", "Go module path")
+	cmd.Flags().StringVar(&options.Runtime, "runtime", "go", "Project runtime: go|js")
+	cmd.Flags().StringVar(&options.ModulePath, "module-path", "", "Module path")
 	cmd.Flags().StringVar(&options.PackageName, "package", "", "Package name")
-	cmd.Flags().StringVar(&options.Template, "template", "edge-http", "Starter template: edge-http|edge-json|scheduled|kv-api|d1-api|r2-api|ai-text|ai-chat|ai-vision|ai-stt|ai-tts|ai-image|ai-embeddings")
+	cmd.Flags().StringVar(&options.Template, "template", "", "Starter template. Go: edge-http|edge-json|scheduled|kv-api|d1-api|r2-api|ai-text|ai-chat|ai-vision|ai-stt|ai-tts|ai-image|ai-embeddings. JS: js-worker")
 	cmd.Flags().StringVar(&options.CompatDate, "compat-date", "", "Compatibility date")
+	cmd.Flags().BoolVar(&options.NodeCompat, "node-compat", false, "Enable Cloudflare's nodejs_compat flag for JavaScript workers")
 	cmd.Flags().StringVar(&options.Env, "env", "", "Wrangler environment")
 	cmd.Flags().BoolVar(&options.UseJSONC, "use-jsonc", false, "Generate wrangler.jsonc")
 	cmd.Flags().BoolVar(&options.WithGit, "with-git", true, "Generate .gitignore")
@@ -79,7 +81,7 @@ func newCheckAliasCommand(deps Dependencies) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&options.Path, "path", ".", "Project path")
 	cmd.Flags().StringVar(&options.Entry, "entry", "", "Package or file entry selector")
-	cmd.Flags().StringVar(&options.Profile, "profile", "worker-wasm", "Profile name")
+	cmd.Flags().StringVar(&options.Profile, "profile", "", "Profile name")
 	cmd.Flags().StringVar(&options.FailOn, "fail-on", "error", "Threshold")
 	cmd.Flags().StringArrayVar(&options.Exclude, "exclude", nil, "Exclude globs")
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Emit machine-readable JSON")

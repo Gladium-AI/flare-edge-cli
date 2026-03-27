@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/paolo/flare-edge-cli/internal/domain/config"
 )
 
 func TestCheckFindsUnsupportedPatterns(t *testing.T) {
@@ -38,5 +40,41 @@ func main() {
 		if item.Line == 0 {
 			t.Fatalf("expected diagnostic line to be set")
 		}
+	}
+}
+
+func TestCheckSkipsStaticAnalysisForJavaScriptWorkers(t *testing.T) {
+	dir := t.TempDir()
+	project := []byte(`{
+  "schema_version": 1,
+  "project_name": "js-worker",
+  "runtime": "js-worker",
+  "module_path": "github.com/example/js-worker",
+  "package_name": "main",
+  "template": "js-worker",
+  "entry": "src/worker.mjs",
+  "main": "src/worker.mjs",
+  "out_dir": "src",
+  "worker_name": "js-worker",
+  "wrangler_config": "wrangler.jsonc",
+  "compatibility_date": "2026-03-19",
+  "compatibility_profile": "worker-js",
+  "nodejs_compat": true,
+  "bindings": {},
+  "generated": {}
+}`)
+	if err := os.WriteFile(filepath.Join(dir, config.DefaultProjectConfigFile), project, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := NewService().Check(context.Background(), CheckOptions{Path: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Profile != config.DefaultJSCompatibilityProfile {
+		t.Fatalf("unexpected profile: %q", result.Profile)
+	}
+	if result.ErrorCount != 0 || result.WarnCount != 0 || len(result.Diagnostics) != 0 {
+		t.Fatalf("expected JavaScript worker compatibility check to be skipped, got %+v", result)
 	}
 }

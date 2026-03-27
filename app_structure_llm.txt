@@ -1,5 +1,5 @@
 # App Structure - flare-edge-cli
-# Last updated: 2026-03-19
+# Last updated: 2026-03-25
 
 ## Repositories
 - GitHub: https://github.com/Gladium-AI/flare-edge-cli
@@ -15,6 +15,6 @@
 - CLOUDFLARE_ACCOUNT_ID (optional, for account selection)
 
 ## Notes
-- Local-first CLI project for Cloudflare Workers Go/Wasm workflows.
+- Local-first CLI project for Cloudflare Workers Go/Wasm and native JavaScript workflows.
 - Uses Wrangler for deployment and resource operations.
 - GitHub automation includes CI quality gates, security scanning, and Dependabot updates under `.github/`.

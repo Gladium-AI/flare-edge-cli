@@ -26,7 +26,7 @@ func newProjectInitCommand(deps Dependencies) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "init <name>",
-		Short: "Scaffold a Workers-ready Go/Wasm project",
+		Short: "Scaffold a Workers-ready project",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			options.Name = args[0]
@@ -39,10 +39,12 @@ func newProjectInitCommand(deps Dependencies) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&options.ModulePath, "module-path", "", "Go module path to initialize")
+	cmd.Flags().StringVar(&options.Runtime, "runtime", "go", "Project runtime: go|js")
+	cmd.Flags().StringVar(&options.ModulePath, "module-path", "", "Module path to initialize")
 	cmd.Flags().StringVar(&options.PackageName, "package", "", "Package name for generated Go entrypoint")
-	cmd.Flags().StringVar(&options.Template, "template", "edge-http", "Starter template: edge-http|edge-json|scheduled|kv-api|d1-api|r2-api|ai-text|ai-chat|ai-vision|ai-stt|ai-tts|ai-image|ai-embeddings")
+	cmd.Flags().StringVar(&options.Template, "template", "", "Starter template. Go: edge-http|edge-json|scheduled|kv-api|d1-api|r2-api|ai-text|ai-chat|ai-vision|ai-stt|ai-tts|ai-image|ai-embeddings. JS: js-worker")
 	cmd.Flags().StringVar(&options.CompatDate, "compat-date", "", "Cloudflare compatibility date")
+	cmd.Flags().BoolVar(&options.NodeCompat, "node-compat", false, "Enable Cloudflare's nodejs_compat flag for JavaScript workers")
 	cmd.Flags().StringVar(&options.Env, "env", "", "Default Wrangler environment")
 	cmd.Flags().BoolVar(&options.UseJSONC, "use-jsonc", false, "Generate wrangler.jsonc output")
 	cmd.Flags().BoolVar(&options.WithGit, "with-git", true, "Generate .gitignore in the scaffolded project")

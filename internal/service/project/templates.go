@@ -9,6 +9,14 @@ import (
 const defaultGitignore = ".wrangler/\ndist/\nnode_modules/\n"
 
 func scaffoldFiles(project config.Project) map[string]string {
+	if project.EffectiveRuntime() == config.RuntimeJavaScript {
+		return map[string]string{
+			"README.md":      readmeTemplate(project),
+			".gitignore":     defaultGitignore,
+			"src/worker.mjs": basicJavaScriptWorkerTemplate(),
+		}
+	}
+
 	return map[string]string{
 		"README.md":                          readmeTemplate(project),
 		".gitignore":                         defaultGitignore,
@@ -66,6 +74,15 @@ func main() {
 	select {}
 }
 `, message)
+}
+
+func basicJavaScriptWorkerTemplate() string {
+	return `export default {
+  async fetch(request, env, ctx) {
+    return new Response("hello from flare-edge-cli");
+  },
+};
+`
 }
 
 func workerShimTemplate(wasmFile string) string {

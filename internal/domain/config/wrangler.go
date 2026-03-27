@@ -6,18 +6,19 @@ import (
 )
 
 type WranglerConfig struct {
-	Name              string                       `json:"name"`
-	Main              string                       `json:"main"`
-	CompatibilityDate string                       `json:"compatibility_date"`
-	Observability     *WranglerObservability       `json:"observability,omitempty"`
-	AI                *WranglerAIBinding           `json:"ai,omitempty"`
-	Vars              map[string]string            `json:"vars,omitempty"`
-	KVNamespaces      []WranglerKVNamespace        `json:"kv_namespaces,omitempty"`
-	D1Databases       []WranglerD1Database         `json:"d1_databases,omitempty"`
-	R2Buckets         []WranglerR2Bucket           `json:"r2_buckets,omitempty"`
-	Routes            []WranglerRoute              `json:"routes,omitempty"`
-	Env               map[string]WranglerEnvConfig `json:"env,omitempty"`
-	Extra             map[string]json.RawMessage   `json:"-"`
+	Name               string                       `json:"name"`
+	Main               string                       `json:"main"`
+	CompatibilityDate  string                       `json:"compatibility_date"`
+	CompatibilityFlags []string                     `json:"compatibility_flags,omitempty"`
+	Observability      *WranglerObservability       `json:"observability,omitempty"`
+	AI                 *WranglerAIBinding           `json:"ai,omitempty"`
+	Vars               map[string]string            `json:"vars,omitempty"`
+	KVNamespaces       []WranglerKVNamespace        `json:"kv_namespaces,omitempty"`
+	D1Databases        []WranglerD1Database         `json:"d1_databases,omitempty"`
+	R2Buckets          []WranglerR2Bucket           `json:"r2_buckets,omitempty"`
+	Routes             []WranglerRoute              `json:"routes,omitempty"`
+	Env                map[string]WranglerEnvConfig `json:"env,omitempty"`
+	Extra              map[string]json.RawMessage   `json:"-"`
 }
 
 type WranglerObservability struct {
@@ -25,14 +26,15 @@ type WranglerObservability struct {
 }
 
 type WranglerEnvConfig struct {
-	Name         string                     `json:"name,omitempty"`
-	AI           *WranglerAIBinding         `json:"ai,omitempty"`
-	Vars         map[string]string          `json:"vars,omitempty"`
-	KVNamespaces []WranglerKVNamespace      `json:"kv_namespaces,omitempty"`
-	D1Databases  []WranglerD1Database       `json:"d1_databases,omitempty"`
-	R2Buckets    []WranglerR2Bucket         `json:"r2_buckets,omitempty"`
-	Routes       []WranglerRoute            `json:"routes,omitempty"`
-	Extra        map[string]json.RawMessage `json:"-"`
+	Name               string                     `json:"name,omitempty"`
+	AI                 *WranglerAIBinding         `json:"ai,omitempty"`
+	Vars               map[string]string          `json:"vars,omitempty"`
+	CompatibilityFlags []string                   `json:"compatibility_flags,omitempty"`
+	KVNamespaces       []WranglerKVNamespace      `json:"kv_namespaces,omitempty"`
+	D1Databases        []WranglerD1Database       `json:"d1_databases,omitempty"`
+	R2Buckets          []WranglerR2Bucket         `json:"r2_buckets,omitempty"`
+	Routes             []WranglerRoute            `json:"routes,omitempty"`
+	Extra              map[string]json.RawMessage `json:"-"`
 }
 
 type WranglerAIBinding struct {
@@ -94,6 +96,7 @@ func (w WranglerConfig) MarshalJSON() ([]byte, error) {
 	putString(raw, "name", w.Name)
 	putString(raw, "main", w.Main)
 	putValue(raw, "compatibility_date", w.CompatibilityDate)
+	putValue(raw, "compatibility_flags", w.CompatibilityFlags)
 	putValue(raw, "observability", w.Observability)
 	putValue(raw, "ai", w.AI)
 	putValue(raw, "vars", w.Vars)
@@ -135,6 +138,7 @@ func (w WranglerEnvConfig) MarshalJSON() ([]byte, error) {
 	putString(raw, "name", w.Name)
 	putValue(raw, "ai", w.AI)
 	putValue(raw, "vars", w.Vars)
+	putValue(raw, "compatibility_flags", w.CompatibilityFlags)
 	putValue(raw, "kv_namespaces", w.KVNamespaces)
 	putValue(raw, "d1_databases", w.D1Databases)
 	putValue(raw, "r2_buckets", w.R2Buckets)
@@ -158,9 +162,11 @@ func deleteKnownWranglerKeys(raw map[string]json.RawMessage) {
 	delete(raw, "name")
 	delete(raw, "main")
 	delete(raw, "compatibility_date")
+	delete(raw, "compatibility_flags")
 	delete(raw, "observability")
 	delete(raw, "ai")
 	delete(raw, "vars")
+	delete(raw, "compatibility_flags")
 	delete(raw, "kv_namespaces")
 	delete(raw, "d1_databases")
 	delete(raw, "r2_buckets")
@@ -216,6 +222,8 @@ func isEmptyJSONValue(value any) bool {
 	case map[string]string:
 		return len(typed) == 0
 	case map[string]WranglerEnvConfig:
+		return len(typed) == 0
+	case []string:
 		return len(typed) == 0
 	case []WranglerKVNamespace:
 		return len(typed) == 0

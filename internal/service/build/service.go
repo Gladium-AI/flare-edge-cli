@@ -37,6 +37,9 @@ type WasmOptions struct {
 }
 
 type WasmResult struct {
+	Runtime  string   `json:"runtime"`
+	Built    bool     `json:"built"`
+	Main     string   `json:"main"`
 	Artifact string   `json:"artifact"`
 	Shim     string   `json:"shim,omitempty"`
 	Files    []string `json:"files"`
@@ -66,12 +69,29 @@ func NewService(store *configstore.Store, fs *fs.FileSystem, runner process.Runn
 	}
 }
 
+func (s *Service) Build(ctx context.Context, options WasmOptions) (WasmResult, error) {
+	project, err := s.loadProject(options.Path)
+	if err != nil {
+		return WasmResult{}, err
+	}
+	if !project.RequiresBuild() {
+		return s.stageJavaScript(options.Path, project)
+	}
+	return s.buildWasm(ctx, project, options)
+}
+
 func (s *Service) Wasm(ctx context.Context, options WasmOptions) (WasmResult, error) {
 	project, err := s.loadProject(options.Path)
 	if err != nil {
 		return WasmResult{}, err
 	}
+	if !project.RequiresBuild() {
+		return WasmResult{}, fmt.Errorf("runtime %q does not produce Wasm artifacts", project.EffectiveRuntime())
+	}
+	return s.buildWasm(ctx, project, options)
+}
 
+func (s *Service) buildWasm(ctx context.Context, project config.Project, options WasmOptions) (WasmResult, error) {
 	outDir := defaultString(options.OutDir, filepath.Join(options.Path, project.OutDir))
 	outFile := defaultString(options.OutFile, project.WasmFile)
 	shimOut := defaultString(options.ShimOut, filepath.Join(outDir, project.ShimFile))
@@ -124,10 +144,30 @@ func (s *Service) Wasm(ctx context.Context, options WasmOptions) (WasmResult, er
 	}
 
 	return WasmResult{
+		Runtime:  project.EffectiveRuntime(),
+		Built:    true,
+		Main:     filepath.Join(options.Path, project.MainPath()),
 		Artifact: artifact,
 		Shim:     shimOut,
 		Files:    files,
 		Compiler: compiler,
+	}, nil
+}
+
+func (s *Service) stageJavaScript(dir string, project config.Project) (WasmResult, error) {
+	mainPath := filepath.Join(dir, project.MainPath())
+	exists, err := s.fs.Exists(mainPath)
+	if err != nil {
+		return WasmResult{}, err
+	}
+	if !exists {
+		return WasmResult{}, fmt.Errorf("worker entrypoint is missing: %s", mainPath)
+	}
+	return WasmResult{
+		Runtime: project.EffectiveRuntime(),
+		Built:   false,
+		Main:    mainPath,
+		Files:   []string{mainPath},
 	}, nil
 }
 
